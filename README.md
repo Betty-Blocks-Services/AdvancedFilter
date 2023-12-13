@@ -10,6 +10,7 @@ You can keep the property whitelist as is to show all the available filter optio
 
 3. Fill in the properties in the Property Whitelist:
 ![Alt text](public/image2.png)
+![Alt text](public/image3.png)
 
 ## Relational filtering
 If you wish to only show certain properties from your relational model then you need to apply the following format:
