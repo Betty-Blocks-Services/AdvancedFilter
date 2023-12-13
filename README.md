@@ -1,21 +1,18 @@
-# Betty Blocks Component Set
+# CustomFilterComponent
+This custom filter component can filter on relational data. PLEASE NOTE: This only works with "Has Many" and "Belongs to" relations and can only go one level deep.
 
-Betty Blocks Component Sets can be used to create Betty Blocks custom components and use these in the Page Builder.
+You can keep the property whitelist as is to show all the available filter options to the user. If you want to whitelist certain properties, you can use the following method to select the properties.
 
-For documentation of the Betty Blocks Component System see: https://github.com/bettyblocks/cli/wiki
+1. Open the data model to view its properties.
+![Alt text](public/image.png)
 
-To get started see: https://github.com/bettyblocks/cli/wiki/Usage#start-the-development-server
+2. Next to each property, the database name is listed. You can use this name but you have to remove the underscores "_" and capitalize each letter. Example given: ```amount_of_items``` becomes ```amountOfItems```.
 
-## TLDR; Local development
+## Relational filtering
+If you wish to only show certain properties from your relational model then you need to apply the following format:
+```webuser(firstName,lastName)```
+This will only show the ID, First Name and Last Name.
 
-1. Install dependencies
 
-```bash
-$ yarn
-```
-
-2. Build + watch
-
-```bash
-$ yarn dev
-```
+### IMPORTANT NOTES:
+The ID will always be visible in the select components. 
