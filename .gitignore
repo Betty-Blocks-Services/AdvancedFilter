@@ -16,3 +16,7 @@ yarn-error.log*
 
 # swp files
 *.swp
+
+# tmp files
+.tmp
+
