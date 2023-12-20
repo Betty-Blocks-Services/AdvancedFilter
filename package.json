@@ -29,5 +29,10 @@
     "lint": "eslint --ext .js,.ts,.tsx ./src",
     "lint:ci": "yarn lint --max-warnings 0"
   },
-  "files": ["dist"]
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "react": "^18.2.0"
+  }
 }
