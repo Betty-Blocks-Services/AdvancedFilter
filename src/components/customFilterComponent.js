@@ -230,13 +230,11 @@
         
         const filterParentProps = (properties, selectedProp) => {
             const referenceModelId = selectedProp.referenceModelId;
-            console.log(" ~ file: filterComponent.js:234 ~ filterParentProps ~ referenceModelId:", referenceModelId)
             const propertiesForModel = Object.values(properties).filter((prop) => {
                 if (prop.modelId === referenceModelId) {
                     return prop;
                 }
             });
-            console.log(" ~ file: filterComponent.js:240 ~ propertiesForModel ~ propertiesForModel:", propertiesForModel)
             const result = propertiesForModel.filter((prop) => {
                 // Find the item in the whiteListParents that matches the current prop.name
                 const rx = new RegExp(`\\b(${selectedProp.name})\\((?:[a-zA-Z]+(?:,[a-zA-Z]+)*)\\)`)
