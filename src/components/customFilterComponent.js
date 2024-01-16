@@ -229,12 +229,11 @@
         const whiteListParents = (propertyWhiteList && propertyWhiteList.match(/\b(\w+)\((?:[a-zA-Z]+(?:,[a-zA-Z]+)*)\)/g)) || [];
         
         const filterParentProps = (properties, selectedProp) => {
-            const referenceModelId = selectedProp.referenceModelId;
-            const propertiesForModel = Object.values(properties).filter((prop) => {
-                if (prop.modelId === referenceModelId) {
-                    return prop;
-                }
-            });
+            const { referenceModelId } = selectedProp;
+            const propertiesForModel = Object.values(properties)
+                .filter(prop => prop.modelId === referenceModelId)
+                .sort((a, b) => a.label.localeCompare(b.label));
+
             const result = propertiesForModel.filter((prop) => {
                 // Find the item in the whiteListParents that matches the current prop.name
                 const rx = new RegExp(`\\b(${selectedProp.name})\\((?:[a-zA-Z]+(?:,[a-zA-Z]+)*)\\)`)
