@@ -481,7 +481,8 @@
             const selectedProp = filteredProps[selectedIndex];
 
             const handleChangeBaseField = (e) => {
-                const prop = Object.values(properties).filter((p) => p.id === e.target.value)[0];
+                const prop = Object.values(properties).find((p) => p.id === e.target.value);
+
                 if (prop.kind === 'belongs_to' || prop.kind === 'has_many') {
                     const parentProps = filterParentProps(properties, prop);
                     setGroups(
@@ -580,15 +581,24 @@
             
             // set initial dropdown value
             if (row.propertyValue === '') {
-                setGroups(
-                    updateRowProperty(
-                        row.rowId,
-                        groups,
-                        'propertyValue',
-                        filteredProps[0].id,
-                    ),
+                const firstProp = Object.values(properties).find(
+                    p => p.id === filteredProps[0].id,
                 );
+          
+                if (firstProp.kind === 'belongs_to' || firstProp.kind === 'has_many') {
+                    const parentProps = filterParentProps(properties, firstProp);
+                    setGroups(
+                        updateRowProperty(row.rowId, groups, 'propertyValue', {
+                            [firstProp.id]: parentProps[0].id,
+                        }),
+                    );
+                } else {
+                    setGroups(
+                        updateRowProperty(row.rowId, groups, 'propertyValue', firstProp.id),
+                    );
+                }
             }
+
             let selectedIndex = null;
             let selectedProp;
 
