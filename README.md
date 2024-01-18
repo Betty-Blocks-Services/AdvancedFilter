@@ -22,4 +22,4 @@ If you want to display specific properties from your relational model, use the f
 This example will show the Webuser as a property that the user can select. After selecting this property, a new select field will appear. In this field, the user can choose from the whitelisted properties (or all if no whitelist is set).
 
 ### IMPORTANT NOTES:
-The ID will always be visible in the select components.
+The ID will always be visible as an option.
