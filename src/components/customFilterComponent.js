@@ -289,10 +289,11 @@
       });
     };
 
-    const renderOption = (key, value) => {
+    const renderOption = (key, value, kind) => {
+      const appendix = kind === 'belongs_to' || kind === 'has_many' ? ' »' : '';
       return (
         <MenuItem key={key} value={key}>
-          {value}
+          {value + appendix}
         </MenuItem>
       );
     };
@@ -535,7 +536,9 @@
             style={{ marginRight: '10px', width: '100%' }}
             onChange={handleChangeBaseField}
           >
-            {filteredProps.map((prop) => renderOption(prop.id, prop.label))}
+            {filteredProps.map((prop) =>
+              renderOption(prop.id, prop.label, prop.kind),
+            )}
           </TextField>
         );
       } else {
@@ -554,7 +557,9 @@
                 style={{ marginRight: '10px', width: '100%' }}
                 onChange={handleChangeBaseField}
               >
-                {filteredProps.map((prop) => renderOption(prop.id, prop.label))}
+                {filteredProps.map((prop) =>
+                  renderOption(prop.id, prop.label, prop.kind),
+                )}
               </TextField>
             </Grid>
             <Grid item xs={6}>
