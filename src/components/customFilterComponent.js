@@ -593,16 +593,16 @@
       // eslint-disable-next-line no-undef
       const { properties } = artifact || {};
       console.log(
-      ' ~ file: filterComponent.js:576 ~ filterRow ~ properties:',
-      properties,
+        ' ~ file: filterComponent.js:576 ~ filterRow ~ properties:',
+        properties,
       );
 
       const filteredProps = filterProps(properties, modelId).sort((a, b) =>
         a.label.localeCompare(b.label),
       );
       console.log(
-      ' ~ file: filterComponent.js:581 ~ filterRow ~ filteredProps:',
-      filteredProps,
+        ' ~ file: filterComponent.js:581 ~ filterRow ~ filteredProps:',
+        filteredProps,
       );
 
       // set initial dropdown value
@@ -1093,12 +1093,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-              {
-                borderColor: ({ options: { highlightColor } }) => [
-                  style.getColor(highlightColor),
-                  '!important',
-                ],
-              },
+            {
+              borderColor: ({ options: { highlightColor } }) => [
+                style.getColor(highlightColor),
+                '!important',
+              ],
+            },
           },
         },
       },
