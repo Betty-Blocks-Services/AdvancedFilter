@@ -217,8 +217,6 @@
     const filterProps = (properties, id, optional = '') => {
       return Object.values(properties).filter((prop) => {
         return (
-          // Always add the id
-          (prop.modelId === id && prop.name === 'id') ||
           // Add all properties besides the forbidden
           (prop.modelId === id &&
             !forbiddenKinds.includes(prop.kind) &&
@@ -1095,12 +1093,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-              {
-                borderColor: ({ options: { highlightColor } }) => [
-                  style.getColor(highlightColor),
-                  '!important',
-                ],
-              },
+            {
+              borderColor: ({ options: { highlightColor } }) => [
+                style.getColor(highlightColor),
+                '!important',
+              ],
+            },
           },
         },
       },
