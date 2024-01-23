@@ -217,8 +217,6 @@
     const filterProps = (properties, id, optional = '') => {
       return Object.values(properties).filter((prop) => {
         return (
-          // Always add the id
-          (prop.modelId === id && prop.name === 'id') ||
           // Add all properties besides the forbidden
           (prop.modelId === id &&
             !forbiddenKinds.includes(prop.kind) &&
@@ -595,16 +593,16 @@
       // eslint-disable-next-line no-undef
       const { properties } = artifact || {};
       console.log(
-        ' ~ file: filterComponent.js:576 ~ filterRow ~ properties:',
-        properties,
+      ' ~ file: filterComponent.js:576 ~ filterRow ~ properties:',
+      properties,
       );
 
       const filteredProps = filterProps(properties, modelId).sort((a, b) =>
         a.label.localeCompare(b.label),
       );
       console.log(
-        ' ~ file: filterComponent.js:581 ~ filterRow ~ filteredProps:',
-        filteredProps,
+      ' ~ file: filterComponent.js:581 ~ filterRow ~ filteredProps:',
+      filteredProps,
       );
 
       // set initial dropdown value
