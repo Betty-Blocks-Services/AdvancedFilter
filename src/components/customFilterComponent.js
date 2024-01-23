@@ -183,6 +183,7 @@
       },
     ];
 
+
     B.defineFunction('Add filter group', () => {
       setGroups([
         ...groups,
@@ -588,7 +589,7 @@
       }
     };
 
-    const filterRow = (row, deletable) => {
+    const FilterRow = ({ row, deletable }) => {
       if (!modelId) return <p>Please select a model</p>;
       // eslint-disable-next-line no-undef
       const { properties } = artifact || {};
@@ -832,7 +833,7 @@
       );
     };
 
-    const filterRowDev = () => {
+    const FilterRowDev = () => {
       return (
         <div style={{ width: '100%', marginBottom: '10px' }}>
           <TextField
@@ -882,15 +883,18 @@
       });
     };
 
-    const addFilterButton = (group, dev) => {
+    const AddFilterRowButton = ({ node, dev }) => {
+
+      const handleAddGroup = (e) => {
+        e.preventDefault();
+        setGroups(addFilter(groups, node.id));
+      }
       return (
         <Button
           type="button"
           disabled={dev}
           style={{ textTransform: 'none' }}
-          onClick={() => {
-            setGroups(addFilter(groups, group.id));
-          }}
+          onClick={handleAddGroup}
         >
           <Icon name="Add" fontSize="small" />
           Add filter row
@@ -908,7 +912,7 @@
       return newTree;
     };
 
-    const operatorSwitch = (node, dev) => {
+    const OperatorSwitch = ({ node, dev }) => {
       return (
         <ButtonGroup size="small" className={classes.operator} disabled={dev}>
           <Button
@@ -941,7 +945,7 @@
       );
     };
 
-    const renderTree = (tree, dev) => {
+    const RenderTree = ({ tree }) => {
       return (
         <>
           <input
@@ -966,15 +970,14 @@
                     </IconButton>
                   </div>
                 )}
-                {operatorSwitch(node, dev)}
-
-                {node.rows.map((row) =>
-                  dev ? filterRowDev() : filterRow(row, node.rows.length > 1),
-                )}
-                {addFilterButton(node, dev)}
+                <OperatorSwitch node={node} dev={isDev} />
+                {
+                  isDev ? <FilterRowDev /> : node.rows.map((row, i) => <FilterRow row={row} deletable={i !== 0} />)
+                }
+                <AddFilterRowButton node={node} dev={isDev} />
               </div>
               {index + 1 < tree.length && (
-                <ButtonGroup size="small" disabled={dev}>
+                <ButtonGroup size="small" disabled={isDev}>
                   <Button
                     disableElevation
                     variant="contained"
@@ -1032,11 +1035,11 @@
       B.triggerEvent('onSubmit', newFilter);
     };
 
-    return isDev ? (
-      <div className={`${classes.root}`}>{renderTree(groups, true)}</div>
-    ) : (
-      <div className={classes.root}>{renderTree(groups)}</div>
-    );
+    return (
+      <div className={classes.root}>
+        <RenderTree tree={groups} />
+      </div>
+    )
   })(),
   styles: (B) => (theme) => {
     const { env, Styling, mediaMinWidth } = B;
