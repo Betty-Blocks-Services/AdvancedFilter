@@ -954,6 +954,12 @@
         setGroups(newGroups);
       }
 
+      const handleSetGroupsOperator = (e) => {
+        e.preventDefault();
+        const newGroupsOperator = e.currentTarget.getAttribute('data-value');
+        setGroupsOperator(newGroupsOperator);
+      }
+
       return (
         <>
           <input
@@ -989,9 +995,8 @@
                     variant="contained"
                     color={groupsOperator === '_and' ? 'primary' : 'default'}
                     classes={{ containedPrimary: classes.highlight }}
-                    onClick={() => {
-                      setGroupsOperator('_and');
-                    }}
+                    onClick={handleSetGroupsOperator}
+                    data-value="_and"
                   >
                     and
                   </Button>
@@ -1000,9 +1005,8 @@
                     variant="contained"
                     color={groupsOperator === '_or' ? 'primary' : 'default'}
                     classes={{ containedPrimary: classes.highlight }}
-                    onClick={() => {
-                      setGroupsOperator('_or');
-                    }}
+                    onClick={handleSetGroupsOperator}
+                    data-value="_or"
                   >
                     or
                   </Button>
