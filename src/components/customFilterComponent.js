@@ -946,6 +946,14 @@
     };
 
     const RenderTree = ({ tree }) => {
+
+      const handleDeleteGroup = (e) => {
+        e.preventDefault();
+        const groupId = e.currentTarget.getAttribute('data-value');
+        const newGroups = deleteGroup(groups, groupId);
+        setGroups(newGroups);
+      }
+
       return (
         <>
           <input
@@ -960,11 +968,9 @@
                   <div className={classes.deleteGroup}>
                     <IconButton
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const newGroups = deleteGroup(groups, node.id);
-                        setGroups(newGroups);
-                      }}
+                      onClick={handleDeleteGroup}
+                      data-value={node.id}
+                      title="Delete group"
                     >
                       <Icon name="Delete" fontSize="small" />
                     </IconButton>
