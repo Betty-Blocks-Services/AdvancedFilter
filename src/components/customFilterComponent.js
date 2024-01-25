@@ -28,6 +28,7 @@
       actionVariableId: name,
     } = options;
     const isDev = env === 'dev';
+    const { properties } = !isDev ? artifact : { properties: {} };
     const makeId = (length = 16) => {
       let result = '';
       const characters =
@@ -215,6 +216,8 @@
       [];
     const blackListItems =
       (propertyBlackList && propertyBlackList.split(',')) || [];
+
+
     const filterProps = (properties, id, optional = '') => {
       return Object.values(properties).filter((prop) => {
         return (
@@ -288,11 +291,11 @@
       });
     };
 
-    const renderOption = (key, value, kind) => {
+    const RenderOption = ({ id, label, kind }) => {
       const appendix = kind === 'belongs_to' || kind === 'has_many' ? ' »' : '';
       return (
-        <MenuItem key={key} value={key}>
-          {value + appendix}
+        <MenuItem key={id} value={key}>
+          {label + appendix}
         </MenuItem>
       );
     };
@@ -480,6 +483,8 @@
       });
     };
 
+
+
     const PropertySelector = ({ row, properties, filteredProps }) => {
       let selectedParent;
       let selectedIndex;
@@ -520,6 +525,7 @@
           setGroups(updateRowProperty(row.rowId, groups, 'rightValue', ''));
         }
       };
+      console.log(filteredProps)
       if (
         selectedProp &&
         selectedProp.kind !== 'belongs_to' &&
@@ -536,7 +542,7 @@
             onChange={handleChangeBaseField}
           >
             {filteredProps.map((prop) =>
-              renderOption(prop.id, prop.label, prop.kind),
+              <RenderOption id={prop.id} label={prop.label} kind={prop.kind} />
             )}
           </TextField>
         );
@@ -557,7 +563,7 @@
                 onChange={handleChangeBaseField}
               >
                 {filteredProps.map((prop) =>
-                  renderOption(prop.id, prop.label, prop.kind),
+                  <RenderOption id={prop.id} label={prop.label} kind={prop.kind} />,
                 )}
               </TextField>
             </Grid>
@@ -581,7 +587,7 @@
                   );
                 }}
               >
-                {parentProps.map((prop) => renderOption(prop.id, prop.label))}
+                {parentProps.map((prop) => <RenderOption id={prop.id} label={prop.label} kind='' />)}
               </TextField>
             </Grid>
           </Grid>
@@ -589,92 +595,115 @@
       }
     };
 
+    const NewPropertySelector = React.memo(({ row, properties = [], handleChange }) => {
+
+
+      return (
+        <TextField
+          value={row.propertyValue}
+          classes={{ root: classes.textFieldHighlight }}
+          select
+          size="small"
+          variant="outlined"
+          style={{ marginRight: '10px', width: '100%' }}
+          onChange={handleChange}
+        >
+          {
+            properties.map((prop) => {
+              return <RenderOption id={prop.id} label={prop.label} kind={prop.kind} />
+            })
+          }
+        </TextField>
+      )
+    });
+
+    const splitWhiteList = (whitelistString) => {
+      const regex = /[^,(]*(?:\([^)]*\))[^,]*|[^,]+/g;
+      return whitelistString.match(regex) || [];
+    }
+
+
+    const createWhitelistObject = (whitelistString) => {
+      const regex = /[^,(]*(?:\([^)]*\))[^,]*|[^,]+/g;
+      const parts = whitelistString.match(regex) || [];
+      const result = {};
+
+      parts.forEach(part => {
+        if (part.includes('(')) {
+          const [name, props] = part.split('(');
+          const cleanProps = props.slice(0, -1); // remove closing parenthesis
+          result[name] = createWhitelistObject(cleanProps);
+        } else {
+          result[part] = true;
+        }
+      });
+
+      return result;
+    }
+
+    const mapProperties = (properties, id, iteration) => {
+      if (iteration === undefined) iteration = 0;
+      if (iteration > 5) return [];
+
+      const filteredProps = filterProps(properties, id);
+
+      const tree = filteredProps.map((prop) => {
+        if (prop.kind === 'belongs_to' || prop.kind === 'has_many') {
+          const props = mapProperties(properties, prop.referenceModelId, iteration + 1);
+          return {
+            id: prop.id,
+            kind: prop.kind,
+            label: prop.label,
+            name: prop.name,
+            properties: props,
+            referenceModelId: prop.referenceModelId,
+          }
+        }
+        return {
+          id: prop.id,
+          kind: prop.kind,
+          label: prop.label,
+          name: prop.name,
+          properties: [],
+          referenceModelId: prop.referenceModelId,
+        }
+      })
+      return tree;
+    }
+
+
     const FilterRow = ({ row, deletable }) => {
       if (!modelId) return <p>Please select a model</p>;
       // eslint-disable-next-line no-undef
       const { properties } = artifact || {};
-      console.log(
-        ' ~ file: filterComponent.js:576 ~ filterRow ~ properties:',
-        properties,
-      );
 
-      const filteredProps = filterProps(properties, modelId).sort((a, b) =>
-        a.label.localeCompare(b.label),
-      );
-      console.log(
-        ' ~ file: filterComponent.js:581 ~ filterRow ~ filteredProps:',
-        filteredProps,
-      );
+      const [selectedProp, setSelectedProp] = React.useState(null);
 
-      // set initial dropdown value
-      if (row.propertyValue === '') {
-        const firstProp = Object.values(properties).find(
-          (p) => p.id === filteredProps[0].id,
-        );
-
-        if (firstProp.kind === 'belongs_to' || firstProp.kind === 'has_many') {
-          const parentProps = filterParentProps(properties, firstProp);
-          setGroups(
-            updateRowProperty(row.rowId, groups, 'propertyValue', {
-              [firstProp.id]: parentProps[0].id,
-            }),
-          );
-        } else {
-          setGroups(
-            updateRowProperty(row.rowId, groups, 'propertyValue', firstProp.id),
-          );
-        }
-      }
-
-      let selectedIndex = null;
-      let selectedProp;
-
-      if (typeof row.propertyValue === 'object') {
-        // Handle belongs_to
-
-        // Get the id of the currently selected property
-        const m = Object.keys(row.propertyValue)[0];
-        // Find the object in the artifact's properties key
-        const mObject = properties[m];
-        // Get the id of the currently selected property that belongs to the model
-        const p = Object.values(row.propertyValue)[0];
-
-        // Get the properties of the belongs_to model
-        const parentProps = filterParentProps(properties, mObject);
-
-        // Find the index of the currently selected property (which is the parent model)
-        selectedIndex = parentProps.findIndex((prop) => prop.id === p);
-        // Get the property object of the currently selected property
-        selectedProp = parentProps[selectedIndex];
-      } else {
-        selectedIndex = filteredProps.findIndex(
-          (prop) => prop.id === row.propertyValue,
-        );
-        selectedProp = filteredProps[selectedIndex];
-      }
-
-      const isNumberType = numberKinds.includes(selectedProp.kind);
-      const isDateType = dateKinds.includes(selectedProp.kind);
-      const isDateTimeType = dateTimeKinds.includes(selectedProp.kind);
-      const isBooleanType = booleanKinds.includes(selectedProp.kind);
+      const isNumberType = selectedProp && numberKinds.includes(selectedProp.kind);
+      const isDateType = selectedProp && dateKinds.includes(selectedProp.kind);
+      const isDateTimeType = selectedProp && dateTimeKinds.includes(selectedProp.kind);
+      const isBooleanType = selectedProp && booleanKinds.includes(selectedProp.kind);
       const isSpecialType = row.operator === 'ex' || row.operator === 'nex';
-
-      const inputType = () => {
-        if (isNumberType) return 'number';
-        return 'text';
-      };
-
-      const isTextType =
+      const isTextType = selectedProp && !isNumberType &&
         !isSpecialType && !isBooleanType && !isDateTimeType && !isDateType;
+
+      const mappedWhiteList = createWhitelistObject(propertyWhiteList);
+      console.log("FilterRow ~ mappedWhiteList:", mappedWhiteList)
+
+      const mappedProperties = mapProperties(properties, modelId);
+      console.log("FilterRow ~ mappedProperties:", mappedProperties)
 
       return (
         <div key={row.rowId} style={{ width: '100%', marginBottom: '10px' }}>
           <Grid container spacing={2} xs={12}>
             <Grid item xs={5}>
-              <PropertySelector
+              <NewPropertySelector
                 row={row}
-                properties={properties}
-                filteredProps={filteredProps}
+                modelId={modelId}
+                properties={[]}
+                handleChange={(e) => {
+                  console.log(e.target.value)
+                }}
               />
             </Grid>
             <Grid item xs={2}>
@@ -697,8 +726,8 @@
                   );
                 }}
               >
-                {filterOperators(selectedProp.kind, operatorList).map((op) => {
-                  return renderOption(op.operator, op.label);
+                {selectedProp && filterOperators(selectedProp.kind, operatorList).map((op) => {
+                  return <RenderOption id={op.operator} kind="" label={op.label} />;
                 })}
               </TextField>
             </Grid>
@@ -709,7 +738,7 @@
                   value={row.rightValue}
                   classes={{ root: classes.textFieldHighlight }}
                   style={{ width: '100%' }}
-                  type={inputType()}
+                  type={isNumberType ? 'number' : 'text'}
                   fullWidth
                   variant="outlined"
                   onChange={(e) => {
@@ -945,20 +974,20 @@
       );
     };
 
-    const RenderTree = ({ tree }) => {
+    const handleDeleteGroup = (e) => {
+      e.preventDefault();
+      const groupId = e.currentTarget.getAttribute('data-value');
+      const newGroups = deleteGroup(groups, groupId);
+      setGroups(newGroups);
+    }
 
-      const handleDeleteGroup = (e) => {
-        e.preventDefault();
-        const groupId = e.currentTarget.getAttribute('data-value');
-        const newGroups = deleteGroup(groups, groupId);
-        setGroups(newGroups);
-      }
+    const handleSetGroupsOperator = (e) => {
+      e.preventDefault();
+      const newGroupsOperator = e.currentTarget.getAttribute('data-value');
+      setGroupsOperator(newGroupsOperator);
+    }
 
-      const handleSetGroupsOperator = (e) => {
-        e.preventDefault();
-        const newGroupsOperator = e.currentTarget.getAttribute('data-value');
-        setGroupsOperator(newGroupsOperator);
-      }
+    const RenderTree = React.memo(({ tree }) => {
 
       return (
         <>
@@ -1016,7 +1045,8 @@
           ))}
         </>
       );
-    };
+    })
+
 
     B.defineFunction('Apply filter', () => {
       try {
