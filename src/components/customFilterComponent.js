@@ -12,8 +12,6 @@
       ButtonGroup,
       IconButton,
       Checkbox,
-      Grid,
-      Select,
     } = window.MaterialUI.Core;
     const { DateFnsUtils } = window.MaterialUI;
     const {
@@ -51,7 +49,7 @@
         rows: [
           {
             rowId: makeId(),
-            selectedProperties: [],
+            propertyValue: '',
             operator: 'eq',
             rightValue: '',
           },
@@ -397,6 +395,7 @@
         return group;
       });
     };
+
     const deleteFilter = (tree, rowId) => {
       return tree.map((group) => {
         const foundRow = group.rows.filter((row) => row.rowId === rowId);
@@ -410,7 +409,6 @@
         return group;
       });
     };
-
 
     const mapWhitelist = (input = '') => {
       const lines = input.split(',');
@@ -472,29 +470,32 @@
       return tree;
     }
 
-    const PropertySelector = ({ properties = [], handleChange = (value) => { return console.error("handleChange is not defined") }, depth = 0 }) => {
-      const [value, setValue] = useState(properties[0].id);
+    const PropertySelector = ({
+      properties = [],
+      handleChange = (value = "") => { return console.error("handleChange is not defined") },
+      selectedProp = ""
+    }) => {
+
+      console.table(` ----------------------------`)
+      console.table(`PropertySelector | selectedProp:`, selectedProp)
+      console.table(` ----------------------------`)
+
 
       const onChange = (event) => {
-        setValue(event.target.value);
         handleChange(event.target.value);
       }
-
       return (
         <TextField
           defaultValue=""
-          value={value}
+          value={selectedProp}
           classes={{ root: classes.textFieldHighlight }}
           size="small"
           variant="outlined"
           style={{ marginRight: '10px', width: '100%' }}
           onChange={onChange}
           select
-          data-depth={depth}
         >
           {
-            // This is left as a javascript component instad of a JSX component
-            // because the JSX component did not trigger the onChange event
             properties.map(({ id, label, properties }) => {
               const appendix = properties.length > 0 ? ' »' : '';
               return (
@@ -508,20 +509,37 @@
       )
     };
 
-    const PropertyGrid = ({ properties, row }) => {
-      const [selectedProp, setSelectedProp] = useState(null);
+    useEffect(() => {
+    }, [groups])
 
+    const PropertyGrid = ({ properties, row, level = 0 }) => {
+      const [selectedProp, setSelectedProp] = useState(null);
+ 
       const handleChange = (value) => {
-        const property = properties.find((prop) => prop.id === value);
+        const property = properties.find(prop => prop.id === value);
+        
         setSelectedProp(property);
+
+        const currentValue = row.propertyValue;
+        const valueDepth = currentValue.split('.').length;
+        const newValue = valueDepth > level + 1 ? currentValue.split('.').slice(0, level + 1).join('.') + value : value;
+
+        setGroups(
+          updateRowProperty(
+            row.rowId,
+            groups,
+            'propertyValue',
+            newValue,
+          ),
+        );
       }
 
       return (
         <>
-          <PropertySelector properties={properties} handleChange={handleChange} />
+          <PropertySelector properties={properties} handleChange={handleChange} selectedProp={row.propertyValue} />
           {
             selectedProp && (selectedProp.properties.length > 0) &&
-            <PropertyGrid properties={selectedProp.properties} row={row} />
+            <PropertyGrid properties={selectedProp.properties} row={row} level={level + 1} />
           }
         </>
       )
@@ -580,10 +598,7 @@
         !isSpecialType && !isBooleanType && !isDateTimeType && !isDateType;
 
       const mappedWhiteList = mapWhitelist(propertyWhiteList);
-      console.log("FilterRow ~ mappedWhiteList:", mappedWhiteList)
       const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList);
-      console.log("FilterRow ~ mappedProperties:", mappedProperties)
-
       return (
         <div key={row.rowId} style={{ width: '100%', marginBottom: '10px' }}>
           <div style={{ display: 'flex' }}>
@@ -640,7 +655,6 @@
                   value={row.rightValue === '' ? null : row.rightValue}
                   initialFocusedDate={new Date()}
                   style={{ width: '100%', margin: '0px' }}
-                  id="date-picker-dialog"
                   variant="inline"
                   inputVariant="outlined"
                   format="dd-MM-yyyy"
@@ -674,7 +688,6 @@
                     daySelected: classes.datePicker,
                     root: classes.textFieldHighlight,
                   }}
-                  id="date-picker-dialog"
                   style={{ width: '100%', margin: '0px' }}
                   size="small"
                   value={row.rightValue === '' ? null : row.rightValue}
