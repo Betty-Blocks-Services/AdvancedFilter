@@ -13,6 +13,7 @@
       IconButton,
       Checkbox,
       Grid,
+      Select,
     } = window.MaterialUI.Core;
     const { DateFnsUtils } = window.MaterialUI;
     const {
@@ -50,13 +51,14 @@
         rows: [
           {
             rowId: makeId(),
-            propertyValue: '',
+            selectedProperties: [],
             operator: 'eq',
             rightValue: '',
           },
         ],
       },
     ];
+
     const [groups, setGroups] = React.useState(initialState);
     const [groupsOperator, setGroupsOperator] = React.useState('_and');
 
@@ -208,80 +210,13 @@
       setGroups(initialState);
     });
 
-    const whiteListItems =
-      (propertyWhiteList &&
-        propertyWhiteList
-          .replace(/\b\((?:[a-z]+(?:,[a-zA-Z]+)*)\)/g, '')
-          .split(',')) ||
-      [];
-    const blackListItems =
-      (propertyBlackList && propertyBlackList.split(',')) || [];
-
-
     const filterProps = (properties, id, optional = '') => {
       return Object.values(properties).filter((prop) => {
         return (
           // Add all properties besides the forbidden
-          (prop.modelId === id &&
-            !forbiddenKinds.includes(prop.kind) &&
-            whiteListItems.length === 0) ||
-          // Only add properties who are whitelisted and not forbidden
-          (prop.modelId === id &&
-            !forbiddenKinds.includes(prop.kind) &&
-            whiteListItems.length > 0 &&
-            whiteListItems.includes(prop.name) &&
-            prop.kind !== optional) ||
-          // Only add properties who are not blacklisted and not forbidden
-          (prop.modelId === id &&
-            !forbiddenKinds.includes(prop.kind) &&
-            blackListItems.length > 0 &&
-            !blackListItems.includes(prop.name) &&
-            prop.kind !== optional)
+          (prop.modelId === id && !forbiddenKinds.includes(prop.kind))
         );
       });
-    };
-
-    // Get all items from the propertyWhiteList with the following regex: /\b(\w+)\((?:[a-zA-Z]+(?:,[a-zA-Z]+)*)\)\,/g
-    // And example of a matching string is: text(can,contains,multipleValues)
-    // This indicates a belongs to relationship with the following values: can,contains,values
-    const whiteListParents =
-      (propertyWhiteList &&
-        propertyWhiteList.match(/\b(\w+)\((?:[a-zA-Z]+(?:,[a-zA-Z]+)*)\)/g)) ||
-      [];
-
-    const filterParentProps = (properties, selectedProp) => {
-      const { referenceModelId } = selectedProp;
-      const propertiesForModel = Object.values(properties)
-        .filter((prop) => prop.modelId === referenceModelId)
-        .sort((a, b) => a.label.localeCompare(b.label));
-
-      const result = propertiesForModel.filter((prop) => {
-        // Find the item in the whiteListParents that matches the current prop.name
-        const rx = new RegExp(
-          `\\b(${selectedProp.name})\\((?:[a-zA-Z]+(?:,[a-zA-Z]+)*)\\)`,
-        );
-        const whiteListParentItem = whiteListParents.find((item) =>
-          item.match(rx),
-        );
-        let parentProperties = [];
-        if (whiteListParentItem) {
-          // Match anything between the brackets and split on comma
-          parentProperties =
-            whiteListParentItem.match(/\(([^)]+)\)/)[1].split(',') || [];
-        }
-        const property =
-          // Always add the id
-          prop.name === 'id' ||
-          (!forbiddenKinds.includes(prop.kind) &&
-            whiteListItems.length === 0) ||
-          (!forbiddenKinds.includes(prop.kind) &&
-            parentProperties.length > 0 &&
-            parentProperties.includes(prop.name));
-
-        return property;
-      });
-
-      return result;
     };
 
     const filterOperators = (kind, operators) => {
@@ -291,14 +226,7 @@
       });
     };
 
-    const RenderOption = ({ id, label, kind }) => {
-      const appendix = kind === 'belongs_to' || kind === 'has_many' ? ' »' : '';
-      return (
-        <MenuItem key={id} value={key}>
-          {label + appendix}
-        </MenuItem>
-      );
-    };
+
 
     const makeFilterChild = (prop, op, right) => {
       switch (op) {
@@ -484,200 +412,164 @@
     };
 
 
-
-    const PropertySelector = ({ row, properties, filteredProps }) => {
-      let selectedParent;
-      let selectedIndex;
-
-      if (typeof row.propertyValue === 'object') {
-        const model = Object.keys(row.propertyValue)[0];
-        selectedParent = model;
-        selectedIndex = filteredProps.findIndex((p) => p.id === model);
-      } else {
-        selectedIndex = filteredProps.findIndex(
-          (p) => p.id === row.propertyValue,
-        );
-      }
-      const selectedProp = filteredProps[selectedIndex];
-
-      const handleChangeBaseField = (e) => {
-        const prop = Object.values(properties).find(
-          (p) => p.id === e.target.value,
-        );
-
-        if (prop.kind === 'belongs_to' || prop.kind === 'has_many') {
-          const parentProps = filterParentProps(properties, prop);
-          setGroups(
-            updateRowProperty(row.rowId, groups, 'propertyValue', {
-              [e.target.value]: parentProps[0].id,
-            }),
-          );
-          setGroups(updateRowProperty(row.rowId, groups, 'rightValue', ''));
-        } else {
-          setGroups(
-            updateRowProperty(
-              row.rowId,
-              groups,
-              'propertyValue',
-              e.target.value,
-            ),
-          );
-          setGroups(updateRowProperty(row.rowId, groups, 'rightValue', ''));
-        }
-      };
-      console.log(filteredProps)
-      if (
-        selectedProp &&
-        selectedProp.kind !== 'belongs_to' &&
-        selectedProp.kind !== 'has_many'
-      ) {
-        return (
-          <TextField
-            value={row.propertyValue}
-            classes={{ root: classes.textFieldHighlight }}
-            select
-            size="small"
-            variant="outlined"
-            style={{ marginRight: '10px', width: '100%' }}
-            onChange={handleChangeBaseField}
-          >
-            {filteredProps.map((prop) =>
-              <RenderOption id={prop.id} label={prop.label} kind={prop.kind} />
-            )}
-          </TextField>
-        );
-      } else {
-        const parentProps = filterParentProps(properties, selectedProp);
-        const selectedChildProp = Object.values(row.propertyValue)[0];
-        return (
-          <Grid container spacing={1} justifyContent="space-between" xs={12}>
-            <Grid item xs={6}>
-              <TextField
-                value={selectedParent}
-                classes={{ root: classes.textFieldHighlight }}
-                select
-                size="small"
-                variant="outlined"
-                fullWidth
-                style={{ marginRight: '10px', width: '100%' }}
-                onChange={handleChangeBaseField}
-              >
-                {filteredProps.map((prop) =>
-                  <RenderOption id={prop.id} label={prop.label} kind={prop.kind} />,
-                )}
-              </TextField>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                value={selectedChildProp}
-                classes={{ root: classes.textFieldHighlight }}
-                select
-                size="small"
-                variant="outlined"
-                fullWidth
-                style={{ marginRight: '10px', width: '100%' }}
-                onChange={(e) => {
-                  setGroups(
-                    updateRowProperty(row.rowId, groups, 'propertyValue', {
-                      [selectedParent]: e.target.value,
-                    }),
-                  );
-                  setGroups(
-                    updateRowProperty(row.rowId, groups, 'rightValue', ''),
-                  );
-                }}
-              >
-                {parentProps.map((prop) => <RenderOption id={prop.id} label={prop.label} kind='' />)}
-              </TextField>
-            </Grid>
-          </Grid>
-        );
-      }
-    };
-
-    const NewPropertySelector = React.memo(({ row, properties = [], handleChange }) => {
-
-
-      return (
-        <TextField
-          value={row.propertyValue}
-          classes={{ root: classes.textFieldHighlight }}
-          select
-          size="small"
-          variant="outlined"
-          style={{ marginRight: '10px', width: '100%' }}
-          onChange={handleChange}
-        >
-          {
-            properties.map((prop) => {
-              return <RenderOption id={prop.id} label={prop.label} kind={prop.kind} />
-            })
-          }
-        </TextField>
-      )
-    });
-
-    const splitWhiteList = (whitelistString) => {
-      const regex = /[^,(]*(?:\([^)]*\))[^,]*|[^,]+/g;
-      return whitelistString.match(regex) || [];
-    }
-
-
-    const createWhitelistObject = (whitelistString) => {
-      const regex = /[^,(]*(?:\([^)]*\))[^,]*|[^,]+/g;
-      const parts = whitelistString.match(regex) || [];
+    const mapWhitelist = (input = '') => {
+      const lines = input.split(',');
       const result = {};
 
-      parts.forEach(part => {
-        if (part.includes('(')) {
-          const [name, props] = part.split('(');
-          const cleanProps = props.slice(0, -1); // remove closing parenthesis
-          result[name] = createWhitelistObject(cleanProps);
-        } else {
-          result[part] = true;
-        }
+      lines.forEach(line => {
+        if (line.trim() === '') return;
+        const properties = line.trim().split('.');
+        let currentObject = result;
+        properties.forEach((property, index) => {
+          if (!currentObject[property]) {
+            if (index === properties.length - 1) {
+              // Last property, set to true
+              currentObject[property] = true;
+            } else {
+              // Not the last property, create a new level
+              currentObject[property] = {};
+            }
+          }
+          currentObject = currentObject[property];
+        });
       });
 
       return result;
     }
 
-    const mapProperties = (properties, id, iteration) => {
+
+    const mapProperties = (properties, id, iteration, whitelist = {}) => {
       if (iteration === undefined) iteration = 0;
       if (iteration > 5) return [];
 
-      const filteredProps = filterProps(properties, id);
+      let filteredProps = filterProps(properties, id);
+      if (Object.keys(whitelist).length > 0) {
+        filteredProps = filteredProps.filter((prop) => !whitelist || whitelist[prop.name])
+      }
+      const tree = filteredProps
+        .map((prop) => {
+          if ((prop.kind === 'belongs_to' || prop.kind === 'has_many') && iteration !== 5) {
+            const props = mapProperties(properties, prop.referenceModelId, iteration + 1, whitelist ? whitelist[prop.name] : undefined);
+            return {
+              id: prop.id,
+              kind: prop.kind,
+              label: prop.label,
+              name: prop.name,
+              properties: props,
+              referenceModelId: prop.referenceModelId,
+            }
 
-      const tree = filteredProps.map((prop) => {
-        if (prop.kind === 'belongs_to' || prop.kind === 'has_many') {
-          const props = mapProperties(properties, prop.referenceModelId, iteration + 1);
+          }
           return {
             id: prop.id,
             kind: prop.kind,
             label: prop.label,
             name: prop.name,
-            properties: props,
+            properties: [],
             referenceModelId: prop.referenceModelId,
           }
-        }
-        return {
-          id: prop.id,
-          kind: prop.kind,
-          label: prop.label,
-          name: prop.name,
-          properties: [],
-          referenceModelId: prop.referenceModelId,
-        }
-      })
+        })
       return tree;
     }
 
+    const PropertySelector = ({ properties = [], handleChange = (value) => { return console.error("handleChange is not defined") }, depth = 0 }) => {
+      const [value, setValue] = useState('');
 
-    const FilterRow = ({ row, deletable }) => {
+      const onChange = (event) => {
+        setValue(event.target.value);
+        handleChange(event.target.value);
+      }
+
+      return (
+        <TextField
+          defaultValue=""
+          value={value}
+          classes={{ root: classes.textFieldHighlight }}
+          size="small"
+          variant="outlined"
+          style={{ marginRight: '10px', width: '100%' }}
+          onChange={onChange}
+          select
+          data-depth={depth}
+        >
+          {
+            // This is left as a javascript component instad of a JSX component
+            // because the JSX component did not trigger the onChange event
+            properties.map(({ id, label, properties }) => {
+              const appendix = properties.length > 0 ? ' »' : '';
+              return (
+                <MenuItem key={id} value={id}>
+                  {label + appendix}
+                </MenuItem>
+              );
+            })
+          }
+        </TextField>
+      )
+    };
+
+    const PropertyGrid = ({ properties, row }) => {
+      const [selectedProp, setSelectedProp] = useState(null);
+
+      const handleChange = (value) => {
+        const property = properties.find((prop) => prop.id === value);
+        setSelectedProp(property);
+      }
+
+      return (
+        <>
+          <PropertySelector properties={properties} handleChange={handleChange} />
+          {
+            selectedProp && (selectedProp.properties.length > 0) &&
+            <PropertyGrid properties={selectedProp.properties} row={row} />
+          }
+        </>
+      )
+    };
+
+    const OperatorSwitch = ({ row }) => {
+      return (
+        <TextField
+          size="small"
+          value={row.operator}
+          classes={{ root: classes.textFieldHighlight }}
+          style={{ width: '100%' }}
+          fullWidth
+          variant="outlined"
+          select
+          onChange={(e) => {
+            setGroups(
+              updateRowProperty(
+                row.rowId,
+                groups,
+                'operator',
+                e.target.value,
+              ),
+            );
+          }}
+        >
+          {
+            operatorList
+              .filter(() => {
+                // TODO: Filter operators based on the property type
+                return true
+              })
+              .map(({ operator, label }) => {
+                return (
+                  <MenuItem key={operator} value={operator}>
+                    {label}
+                  </MenuItem>
+                );
+              })
+          }
+        </TextField>
+      )
+    }
+
+    const FilterRow = ({ row, removeable }) => {
       if (!modelId) return <p>Please select a model</p>;
-      // eslint-disable-next-line no-undef
-      const { properties } = artifact || {};
 
-      const [selectedProp, setSelectedProp] = React.useState(null);
+      const selectedProp = row.propertyValue && getProperty(row.propertyValue);
 
       const isNumberType = selectedProp && numberKinds.includes(selectedProp.kind);
       const isDateType = selectedProp && dateKinds.includes(selectedProp.kind);
@@ -687,178 +579,140 @@
       const isTextType = selectedProp && !isNumberType &&
         !isSpecialType && !isBooleanType && !isDateTimeType && !isDateType;
 
-      const mappedWhiteList = createWhitelistObject(propertyWhiteList);
+      const mappedWhiteList = mapWhitelist(propertyWhiteList);
       console.log("FilterRow ~ mappedWhiteList:", mappedWhiteList)
-
-      const mappedProperties = mapProperties(properties, modelId);
+      const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList);
       console.log("FilterRow ~ mappedProperties:", mappedProperties)
 
       return (
         <div key={row.rowId} style={{ width: '100%', marginBottom: '10px' }}>
-          <Grid container spacing={2} xs={12}>
-            <Grid item xs={5}>
-              <NewPropertySelector
-                row={row}
-                modelId={modelId}
-                properties={[]}
-                handleChange={(e) => {
-                  console.log(e.target.value)
-                }}
-              />
-            </Grid>
-            <Grid item xs={2}>
+          <div style={{ display: 'flex' }}>
+            <PropertyGrid properties={mappedProperties} row={row} />
+            <OperatorSwitch row={row} isNumberType={isNumberType} />
+            {isTextType && (
               <TextField
                 size="small"
-                value={row.operator}
+                value={row.rightValue}
                 classes={{ root: classes.textFieldHighlight }}
-                select
-                variant="outlined"
+                style={{ width: '100%' }}
+                type={isNumberType ? 'number' : 'text'}
                 fullWidth
-                style={{ marginRight: '10px', width: '100%' }}
+                variant="outlined"
                 onChange={(e) => {
                   setGroups(
                     updateRowProperty(
                       row.rowId,
                       groups,
-                      'operator',
+                      'rightValue',
                       e.target.value,
                     ),
                   );
                 }}
-              >
-                {selectedProp && filterOperators(selectedProp.kind, operatorList).map((op) => {
-                  return <RenderOption id={op.operator} kind="" label={op.label} />;
-                })}
-              </TextField>
-            </Grid>
-            <Grid item xs={4}>
-              {isTextType && (
-                <TextField
+              />
+            )}
+            {isBooleanType && !isSpecialType && (
+              <Checkbox
+                checked={row.rightValue}
+                classes={{ checked: classes.checkBox }}
+                onChange={(e) => {
+                  setGroups(
+                    updateRowProperty(
+                      row.rowId,
+                      groups,
+                      'rightValue',
+                      e.target.checked,
+                    ),
+                  );
+                }}
+                inputProps={{ 'aria-label': 'primary checkbox' }}
+              />
+            )}
+            {isDateType && !isSpecialType && (
+              <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                <KeyboardDatePicker
+                  margin="none"
+                  classes={{
+                    toolbar: classes.datePicker,
+                    daySelected: classes.datePicker,
+                    root: classes.textFieldHighlight,
+                  }}
                   size="small"
-                  value={row.rightValue}
-                  classes={{ root: classes.textFieldHighlight }}
-                  style={{ width: '100%' }}
-                  type={isNumberType ? 'number' : 'text'}
-                  fullWidth
-                  variant="outlined"
-                  onChange={(e) => {
+                  value={row.rightValue === '' ? null : row.rightValue}
+                  initialFocusedDate={new Date()}
+                  style={{ width: '100%', margin: '0px' }}
+                  id="date-picker-dialog"
+                  variant="inline"
+                  inputVariant="outlined"
+                  format="dd-MM-yyyy"
+                  KeyboardButtonProps={{
+                    'aria-label': 'change date',
+                  }}
+                  onKeyDown={(e) => {
+                    e.preventDefault();
+                  }}
+                  allowKeyboardControl={false}
+                  onChange={(date) => {
+                    const dateValue = date.toISOString().split('T')[0];
                     setGroups(
                       updateRowProperty(
                         row.rowId,
                         groups,
                         'rightValue',
-                        e.target.value,
+                        dateValue,
                       ),
                     );
                   }}
                 />
-              )}
-              {isBooleanType && !isSpecialType && (
-                <Checkbox
-                  checked={row.rightValue}
-                  classes={{ checked: classes.checkBox }}
-                  onChange={(e) => {
+              </MuiPickersUtilsProvider>
+            )}
+            {isDateTimeType && !isSpecialType && (
+              <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                <KeyboardDateTimePicker
+                  margin="none"
+                  classes={{
+                    toolbar: classes.datePicker,
+                    daySelected: classes.datePicker,
+                    root: classes.textFieldHighlight,
+                  }}
+                  id="date-picker-dialog"
+                  style={{ width: '100%', margin: '0px' }}
+                  size="small"
+                  value={row.rightValue === '' ? null : row.rightValue}
+                  variant="inline"
+                  inputVariant="outlined"
+                  format="dd-MM-yyyy HH:mm"
+                  KeyboardButtonProps={{
+                    'aria-label': 'change date',
+                  }}
+                  onKeyDown={(e) => {
+                    e.preventDefault();
+                  }}
+                  allowKeyboardControl={false}
+                  onChange={(date) => {
                     setGroups(
                       updateRowProperty(
                         row.rowId,
                         groups,
                         'rightValue',
-                        e.target.checked,
+                        date.toISOString(),
                       ),
                     );
                   }}
-                  inputProps={{ 'aria-label': 'primary checkbox' }}
                 />
-              )}
-              {isDateType && !isSpecialType && (
-                <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                  <KeyboardDatePicker
-                    margin="none"
-                    classes={{
-                      toolbar: classes.datePicker,
-                      daySelected: classes.datePicker,
-                      root: classes.textFieldHighlight,
-                    }}
-                    size="small"
-                    value={row.rightValue === '' ? null : row.rightValue}
-                    initialFocusedDate={new Date()}
-                    style={{ width: '100%', margin: '0px' }}
-                    id="date-picker-dialog"
-                    variant="inline"
-                    inputVariant="outlined"
-                    format="dd-MM-yyyy"
-                    KeyboardButtonProps={{
-                      'aria-label': 'change date',
-                    }}
-                    onKeyDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    allowKeyboardControl={false}
-                    onChange={(date) => {
-                      const dateValue = date.toISOString().split('T')[0];
-                      setGroups(
-                        updateRowProperty(
-                          row.rowId,
-                          groups,
-                          'rightValue',
-                          dateValue,
-                        ),
-                      );
-                    }}
-                  />
-                </MuiPickersUtilsProvider>
-              )}
-              {isDateTimeType && !isSpecialType && (
-                <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                  <KeyboardDateTimePicker
-                    margin="none"
-                    classes={{
-                      toolbar: classes.datePicker,
-                      daySelected: classes.datePicker,
-                      root: classes.textFieldHighlight,
-                    }}
-                    id="date-picker-dialog"
-                    style={{ width: '100%', margin: '0px' }}
-                    size="small"
-                    value={row.rightValue === '' ? null : row.rightValue}
-                    variant="inline"
-                    inputVariant="outlined"
-                    format="dd-MM-yyyy HH:mm"
-                    KeyboardButtonProps={{
-                      'aria-label': 'change date',
-                    }}
-                    onKeyDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    allowKeyboardControl={false}
-                    onChange={(date) => {
-                      setGroups(
-                        updateRowProperty(
-                          row.rowId,
-                          groups,
-                          'rightValue',
-                          date.toISOString(),
-                        ),
-                      );
-                    }}
-                  />
-                </MuiPickersUtilsProvider>
-              )}
-            </Grid>
-            <Grid item xs={1}>
-              {deletable && (
-                <IconButton
-                  aria-label="delete"
-                  onClick={() => {
-                    setGroups(deleteFilter(groups, row.rowId));
-                  }}
-                >
-                  <Icon name="Delete" fontSize="small" />
-                </IconButton>
-              )}
-            </Grid>
-          </Grid>
-        </div>
+              </MuiPickersUtilsProvider>
+            )}
+            {removeable && (
+              <IconButton
+                aria-label="delete"
+                onClick={() => {
+                  setGroups(deleteFilter(groups, row.rowId));
+                }}
+              >
+                <Icon name="Delete" fontSize="small" />
+              </IconButton>
+            )}
+          </div >
+        </div >
       );
     };
 
@@ -941,7 +795,7 @@
       return newTree;
     };
 
-    const OperatorSwitch = ({ node, dev }) => {
+    const AndOrOperatorSwitch = ({ node, dev }) => {
       return (
         <ButtonGroup size="small" className={classes.operator} disabled={dev}>
           <Button
@@ -974,6 +828,8 @@
       );
     };
 
+
+
     const handleDeleteGroup = (e) => {
       e.preventDefault();
       const groupId = e.currentTarget.getAttribute('data-value');
@@ -987,7 +843,7 @@
       setGroupsOperator(newGroupsOperator);
     }
 
-    const RenderTree = React.memo(({ tree }) => {
+    const RenderTree = ({ tree }) => {
 
       return (
         <>
@@ -1011,9 +867,9 @@
                     </IconButton>
                   </div>
                 )}
-                <OperatorSwitch node={node} dev={isDev} />
+                <AndOrOperatorSwitch node={node} dev={isDev} />
                 {
-                  isDev ? <FilterRowDev /> : node.rows.map((row, i) => <FilterRow row={row} deletable={i !== 0} />)
+                  isDev ? <FilterRowDev /> : node.rows.map((row, i) => <FilterRow row={row} removeable={i !== 0} />)
                 }
                 <AddFilterRowButton node={node} dev={isDev} />
               </div>
@@ -1045,7 +901,7 @@
           ))}
         </>
       );
-    })
+    };
 
 
     B.defineFunction('Apply filter', () => {
@@ -1076,7 +932,7 @@
     };
 
     return (
-      <div className={classes.root}>
+      <div className={classes.root} >
         <RenderTree tree={groups} />
       </div>
     )
