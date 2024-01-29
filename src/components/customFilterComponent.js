@@ -473,7 +473,7 @@
     }
 
     const PropertySelector = ({ properties = [], handleChange = (value) => { return console.error("handleChange is not defined") }, depth = 0 }) => {
-      const [value, setValue] = useState('');
+      const [value, setValue] = useState(properties[0].id);
 
       const onChange = (event) => {
         setValue(event.target.value);
