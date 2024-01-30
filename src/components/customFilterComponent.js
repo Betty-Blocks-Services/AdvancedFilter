@@ -73,7 +73,6 @@
       'auto_increment',
       'phone_number',
       'iban',
-      'list',
     ];
     const numberKinds = [
       'serial',
@@ -656,6 +655,7 @@
       const isDateType = dateKinds.includes(selectedProp.kind);
       const isDateTimeType = dateTimeKinds.includes(selectedProp.kind);
       const isBooleanType = booleanKinds.includes(selectedProp.kind);
+      const isListType = selectedProp.kind === 'list';
       const isSpecialType = row.operator === 'ex' || row.operator === 'nex';
 
       const inputType = () => {
@@ -664,7 +664,11 @@
       };
 
       const isTextType =
-        !isSpecialType && !isBooleanType && !isDateTimeType && !isDateType;
+        !isSpecialType &&
+        !isBooleanType &&
+        !isDateTimeType &&
+        !isDateType &&
+        !isListType;
 
       return (
         <div key={row.rowId} style={{ width: '100%', marginBottom: '10px' }}>
@@ -813,6 +817,34 @@
                     }}
                   />
                 </MuiPickersUtilsProvider>
+              )}
+              {isListType && !isSpecialType && (
+                <TextField
+                  select
+                  size="small"
+                  value={row.rightValue}
+                  classes={{ root: classes.textFieldHighlight }}
+                  style={{ width: '100%' }}
+                  type={inputType()}
+                  fullWidth
+                  variant="outlined"
+                  onChange={(e) => {
+                    setGroups(
+                      updateRowProperty(
+                        row.rowId,
+                        groups,
+                        'rightValue',
+                        e.target.value,
+                      ),
+                    );
+                  }}
+                >
+                  {selectedProp.values.map(({ value }) => (
+                    <MenuItem key={value} value={value}>
+                      {value}
+                    </MenuItem>
+                  ))}
+                </TextField>
               )}
             </Grid>
             <Grid item xs={1}>
@@ -1093,12 +1125,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-            {
-              borderColor: ({ options: { highlightColor } }) => [
-                style.getColor(highlightColor),
-                '!important',
-              ],
-            },
+              {
+                borderColor: ({ options: { highlightColor } }) => [
+                  style.getColor(highlightColor),
+                  '!important',
+                ],
+              },
           },
         },
       },
