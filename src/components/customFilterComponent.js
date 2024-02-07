@@ -28,6 +28,7 @@
     } = options;
     const isDev = env === 'dev';
     const { properties } = !isDev ? artifact : { properties: {} };
+
     const makeId = (length = 16) => {
       let result = '';
       const characters =
@@ -58,7 +59,16 @@
       },
     ];
 
-    const [groups, setGroups] = React.useState(initialState);
+    const [filterGroups, setFilterGroups] = React.useState(initialState);
+    const [groups, setGroups] = React.useState(
+      // Only store the id of the group and each row
+      initialState.map(group => {
+        return {
+          id: group.id,
+          rows: group.rows.map(row => row.rowId)
+        }
+      })
+    );
     const [groupsOperator, setGroupsOperator] = React.useState('_and');
 
     const [filter, setFilter] = useState(null);
@@ -186,8 +196,8 @@
 
 
     B.defineFunction('Add filter group', () => {
-      setGroups([
-        ...groups,
+      setFilterGroups([
+        ...filterGroups,
         {
           id: makeId(),
           operator: '_or',
@@ -205,16 +215,15 @@
     });
 
     B.defineFunction('Reset advanced filter', () => {
-      setGroups(initialState);
+      setFilterGroups(initialState);
     });
 
-    const filterProps = (properties, id, parent = '') => {
+    const filterProps = (properties, id, inverseId = '') => {
       return Object.values(properties).filter((prop) => {
         return (
           // Add all properties besides the forbidden
           (prop.modelId === id && !forbiddenKinds.includes(prop.kind)) &&
-          // Prevent circular reference shopItems->shoppingCart->shopItems
-          (parent === '' || parent !== prop.id)
+          (inverseId === '' || inverseId !== prop.id)
         );
       });
     };
@@ -321,7 +330,7 @@
     };
 
     const updateRowProperty = (rowId, propertyToUpdate, newValue) => {
-      return groups.map((group) => {
+      return filterGroups.map((group) => {
         const foundRow = group.rows.filter((row) => row.rowId === rowId);
         if (foundRow.length === 0) {
           // eslint-disable-next-line no-param-reassign
@@ -458,7 +467,7 @@
     const getSelectedProperty = (rowId = "") => {
       if (!rowId) return null;
       // Get the row object
-      const rowObject = groups
+      const rowObject = filterGroups
         .map(group => group.rows)
         .flat()
         .find(row => row.rowId === rowId);
@@ -516,10 +525,14 @@
     };
 
     const getRow = (rowId) => {
-      return groups
+      return filterGroups
         .map(group => group.rows)
         .flat()
         .find(row => row.rowId === rowId);
+    }
+
+    const getGroup = (groupId) => {
+      return filterGroups.find(group => group.id === groupId);
     }
 
     const handleChangeLeftValueInput = (value, properties, rowId, level) => {
@@ -539,7 +552,7 @@
 
       currentValue = currentValue.join('.');
 
-      setGroups(
+      setFilterGroups(
         updateRowProperty(
           row.rowId,
           'propertyValue',
@@ -588,7 +601,7 @@
           variant="outlined"
           select
           onChange={(e) => {
-            setGroups(
+            setFilterGroups(
               updateRowProperty(
                 rowId,
                 'operator',
@@ -611,33 +624,7 @@
       )
     }
 
-    const handleChangeRightValueInput = (e) => {
-      const { row, type } = e.target.dataset;
-
-      const updateGroups = (newRightValue) => {
-        setGroups(
-          updateRowProperty(row, 'rightValue', newRightValue)
-        );
-      };
-
-      // Debounce the input with a timeout of 500ms
-      if (type === 'date') {
-        const d = new Date(e);
-        const dateValue = d.toISOString().split('T')[0];
-        updateGroups(dateValue);
-      } else if (type === 'boolean') {
-        const checked = e.target.checked;
-        updateGroups(checked);
-      } else if (type === 'number') {
-        const value = e.target.value;
-        let newRightValue = Number(value);
-        updateGroups(newRightValue);
-      } else {
-        const value = e.target.value;
-        let newRightValue = value;
-        updateGroups(newRightValue);
-      }
-    }
+    
 
     const RightValueInput = React.memo(({ rowId }) => {
       const prop = getSelectedProperty(rowId);
@@ -651,6 +638,35 @@
       const isBooleanType = booleanKinds.includes(prop.kind);
       const isListType = prop.kind === 'list';
       const isSpecialType = row.operator === 'ex' || row.operator === 'nex';
+
+      useEffect(() => {
+        setFilterGroups(
+          updateRowProperty(row, 'rightValue', rightValue)
+        );
+      }, [rightValue]);
+
+      const handleChange = React.useCallback((e) => {
+        e.persist();
+        const { row, type } = e.target.dataset;
+
+        if (type === 'date') {
+          const d = new Date(value);
+          const newRightValue = d.toISOString().split('T')[0];
+          setRightValue(newRightValue);
+        } else if (type === 'boolean') {
+          const newRightValue = value.target.checked;
+          setRightValue(newRightValue);
+
+        } else if (type === 'number') {
+          const value = value.target.value;
+          let newRightValue = Number(value);
+          setRightValue(newRightValue);
+        } else {
+          const value = value.target.value;
+          let newRightValue = value;
+          setRightValue(newRightValue);
+        }
+      }, [])
 
       if (isSpecialType) {
         return null;
@@ -666,7 +682,7 @@
             type="number"
             fullWidth
             variant="outlined"
-            onChange={handleChangeRightValueInput}
+            onChange={handleChange}
             inputProps={{
               'data-row': rowId,
               'data-type': 'number',
@@ -703,7 +719,7 @@
                 e.preventDefault();
               }}
               allowKeyboardControl={false}
-              onChange={handleChangeRightValueInput}
+              onChange={handleChange}
             />
           </MuiPickersUtilsProvider>
         )
@@ -718,7 +734,7 @@
               'data-row': rowId,
               'data-type': 'checkbox',
             }}
-            onChange={handleChangeRightValueInput}
+            onChange={handleChange}
           />
         )
       }
@@ -738,7 +754,7 @@
               'data-row': rowId,
               'data-type': 'list',
             }}
-            onChange={handleChangeRightValueInput}
+            onChange={handleChange}
           >
             {selectedProp.values.map(({ value }) => (
               <MenuItem key={value} value={value}>
@@ -764,7 +780,7 @@
             'data-row': rowId,
             'data-type': 'text',
           }}
-          onChange={handleChangeRightValueInput}
+          onChange={handleChange}
         />
       )
 
@@ -775,6 +791,10 @@
       console.log("FilterRow gets rendered")
       if (!modelId) return <p>Please select a model</p>;
       const row = getRow(rowId);
+      if(!row) {
+        console.error(`Row with id '${rowId}' not found`);
+        return null;
+      }
 
       const mappedWhiteList = mapWhitelist(propertyWhiteList);
       const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList);
@@ -783,7 +803,7 @@
         // Set the default property value
         if (row.propertyValue === '') {
           const defaultProperty = mappedProperties[0];
-          setGroups(
+          setFilterGroups(
             updateRowProperty(
               row.rowId,
               'propertyValue',
@@ -801,12 +821,12 @@
             </div>
             {/* Align operator switch to the right */}
             <OperatorSwitch rowId={row.rowId} />
-            <RightValueInput key={makeId()} rowId={row.rowId} />
+            <RightValueInput rowId={row.rowId} />
             {removeable && (
               <IconButton
                 aria-label="delete"
                 onClick={() => {
-                  setGroups(deleteFilter(groups, row.rowId));
+                  setFilterGroups(deleteFilter(filterGroups, row.rowId));
                 }}
               >
                 <Icon name="Delete" fontSize="small" />
@@ -865,11 +885,11 @@
       });
     };
 
-    const AddFilterRowButton = ({ node }) => {
+    const AddFilterRowButton = ({ group }) => {
 
       const handleAddGroup = (e) => {
         e.preventDefault();
-        setGroups(addFilter(groups, node.id));
+        setFilterGroups(addFilter(filterGroups, group.id));
       }
       return (
         <Button
@@ -893,19 +913,24 @@
       return newTree;
     };
 
-    const AndOrOperatorSwitch = ({ node, dev }) => {
+    const AndOrOperatorSwitch = ({ groupId }) => {
+      const group = getGroup(groupId);
+
+      const handleOnClick = (e) => {
+        const operator = e.currentTarget.getAttribute('data-value');
+        setFilterGroups(
+          updateGroupProperty(group.id, filterGroups, 'operator', operator),
+        );
+      }
       return (
         <ButtonGroup size="small" className={classes.operator} style={{ pointerEvents: isDev ? 'none' : 'all' }}>
           <Button
             disableElevation
             variant="contained"
             classes={{ containedPrimary: classes.highlight }}
-            color={node.operator === '_and' ? 'primary' : 'default'}
-            onClick={() => {
-              setGroups(
-                updateGroupProperty(node.id, groups, 'operator', '_and'),
-              );
-            }}
+            color={group.operator === '_and' ? 'primary' : 'default'}
+            data-value="_and"
+            onClick={handleOnClick}
           >
             and
           </Button>
@@ -913,12 +938,9 @@
             disableElevation
             variant="contained"
             classes={{ containedPrimary: classes.highlight }}
-            color={node.operator === '_or' ? 'primary' : 'default'}
-            onClick={() => {
-              setGroups(
-                updateGroupProperty(node.id, groups, 'operator', '_or'),
-              );
-            }}
+            color={group.operator === '_or' ? 'primary' : 'default'}
+            onClick={handleOnClick}
+            data-value="_or"
           >
             or
           </Button>
@@ -929,8 +951,8 @@
     const handleDeleteGroup = (e) => {
       e.preventDefault();
       const groupId = e.currentTarget.getAttribute('data-value');
-      const newGroups = deleteGroup(groups, groupId);
-      setGroups(newGroups);
+      const newGroups = deleteGroup(filterGroups, groupId);
+      setFilterGroups(newGroups);
     }
 
     const handleSetGroupsOperator = (e) => {
@@ -940,7 +962,8 @@
     }
 
     const RenderGroups = () => {
-      console.log('RenderGroups is rendering')
+      console.log("RenderGroups gets rendered")
+
       return (
         <>
           <input
@@ -963,22 +986,22 @@
                     </IconButton>
                   </div>
                 )}
-                <AndOrOperatorSwitch node={group} dev={isDev} />
+                <AndOrOperatorSwitch groupId={group.id} />
                 {
-                  isDev ? <FilterRowDev /> : group.rows.map((row, i) => {
+                  isDev ? <FilterRowDev /> : group.rows.map((rowId, i) => {
                     return (
                       <>
                         {
                           i > 0 && <hr />
                         }
-                        <FilterRow rowId={row.rowId} removeable={group.rows.length > 0} key={row.rowId} />
+                        <FilterRow rowId={rowId} removeable={group.rows.length > 0} key={rowId} />
                       </>
                     )
                   })
                 }
-                <AddFilterRowButton node={group} />
+                <AddFilterRowButton group={group} />
               </div>
-              {index + 1 < groups.length && (
+              {index + 1 < filterGroups.length && (
                 <ButtonGroup size="small" style={{ pointerEvents: isDev ? 'none' : 'all' }}>
                   <Button
                     disableElevation
@@ -1023,7 +1046,7 @@
 
     const handleApplyFilter = () => {
 
-      const newFilter = makeFilter(groups);
+      const newFilter = makeFilter(filterGroups);
 
       console.info('Filter for datatable ready! Output:');
       console.info(newFilter);
