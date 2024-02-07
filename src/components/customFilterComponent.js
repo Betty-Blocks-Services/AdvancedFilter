@@ -41,7 +41,7 @@
       return result;
     };
 
-    
+
     const initialState = [
       {
         id: makeId(),
@@ -822,27 +822,24 @@
       return (
         <div style={{ width: '100%', marginBottom: '10px' }}>
           <TextField
-            disabled
             select
             size="small"
             variant="outlined"
-            style={{ marginRight: '10px', width: '33%' }}
+            style={{ marginRight: '10px', width: '33%', pointerEvents: 'none' }}
           />
           <TextField
             size="small"
-            disabled
             select
             variant="outlined"
-            style={{ marginRight: '10px', width: '15%' }}
+            style={{ marginRight: '10px', width: '15%', pointerEvents: 'none' }}
           />
           <TextField
             size="small"
-            disabled
             type="text"
-            style={{ width: '33%' }}
+            style={{ width: '33%', pointerEvents: 'none' }}
             variant="outlined"
           />
-          <IconButton aria-label="delete" disabled>
+          <IconButton aria-label="delete" style={{ pointerEvents: 'none' }}>
             <Icon name="Delete" fontSize="small" />
           </IconButton>
         </div>
@@ -868,7 +865,7 @@
       });
     };
 
-    const AddFilterRowButton = ({ node, dev }) => {
+    const AddFilterRowButton = ({ node }) => {
 
       const handleAddGroup = (e) => {
         e.preventDefault();
@@ -877,8 +874,7 @@
       return (
         <Button
           type="button"
-          disabled={dev}
-          style={{ textTransform: 'none' }}
+          style={{ textTransform: 'none', pointerEvents: isDev ? 'none' : 'all' }}
           onClick={handleAddGroup}
         >
           <Icon name="Add" fontSize="small" />
@@ -899,7 +895,7 @@
 
     const AndOrOperatorSwitch = ({ node, dev }) => {
       return (
-        <ButtonGroup size="small" className={classes.operator} disabled={dev}>
+        <ButtonGroup size="small" className={classes.operator} style={{ pointerEvents: isDev ? 'none' : 'all' }}>
           <Button
             disableElevation
             variant="contained"
@@ -980,10 +976,10 @@
                     )
                   })
                 }
-                <AddFilterRowButton node={group} dev={isDev} />
+                <AddFilterRowButton node={group} />
               </div>
               {index + 1 < groups.length && (
-                <ButtonGroup size="small" disabled={isDev}>
+                <ButtonGroup size="small" style={{ pointerEvents: isDev ? 'none' : 'all' }}>
                   <Button
                     disableElevation
                     variant="contained"
@@ -1097,12 +1093,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-              {
-                borderColor: ({ options: { highlightColor } }) => [
-                  style.getColor(highlightColor),
-                  '!important',
-                ],
-              },
+            {
+              borderColor: ({ options: { highlightColor } }) => [
+                style.getColor(highlightColor),
+                '!important',
+              ],
+            },
           },
         },
       },
