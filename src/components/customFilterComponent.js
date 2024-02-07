@@ -75,7 +75,6 @@
       'auto_increment',
       'phone_number',
       'iban',
-      'list',
     ];
     const numberKinds = [
       'serial',
@@ -815,6 +814,7 @@
             )}
           </div>
         </div >
+
       );
     };
 
@@ -1097,12 +1097,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-            {
-              borderColor: ({ options: { highlightColor } }) => [
-                style.getColor(highlightColor),
-                '!important',
-              ],
-            },
+              {
+                borderColor: ({ options: { highlightColor } }) => [
+                  style.getColor(highlightColor),
+                  '!important',
+                ],
+              },
           },
         },
       },
