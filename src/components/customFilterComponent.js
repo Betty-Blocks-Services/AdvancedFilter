@@ -640,9 +640,11 @@
       const isSpecialType = row.operator === 'ex' || row.operator === 'nex';
 
       useEffect(() => {
-        setFilterGroups(
-          updateRowProperty(row, 'rightValue', rightValue)
-        );
+        if(rightValue !== row.rightValue) {
+          setFilterGroups(
+            updateRowProperty(row, 'rightValue', rightValue)
+          );
+        }
       }, [rightValue]);
 
       const handleChange = React.useCallback((e) => {
@@ -650,19 +652,19 @@
         const { row, type } = e.target.dataset;
 
         if (type === 'date') {
-          const d = new Date(value);
+          const d = new Date(e);
           const newRightValue = d.toISOString().split('T')[0];
           setRightValue(newRightValue);
         } else if (type === 'boolean') {
-          const newRightValue = value.target.checked;
+          const newRightValue = e.target.checked;
           setRightValue(newRightValue);
 
         } else if (type === 'number') {
-          const value = value.target.value;
+          const value = e.target.value;
           let newRightValue = Number(value);
           setRightValue(newRightValue);
         } else {
-          const value = value.target.value;
+          const value = e.target.value;
           let newRightValue = value;
           setRightValue(newRightValue);
         }
@@ -961,7 +963,7 @@
       setGroupsOperator(newGroupsOperator);
     }
 
-    const RenderGroups = () => {
+    const RenderGroups = React.memo(() => {
       console.log("RenderGroups gets rendered")
 
       return (
@@ -1029,7 +1031,7 @@
           ))}
         </>
       );
-    };
+    });
 
 
     B.defineFunction('Apply filter', () => {
