@@ -59,16 +59,7 @@
       },
     ];
 
-    const [filterGroups, setFilterGroups] = React.useState(initialState);
-    const [groups, setGroups] = React.useState(
-      // Only store the id of the group and each row
-      initialState.map(group => {
-        return {
-          id: group.id,
-          rows: group.rows.map(row => row.rowId)
-        }
-      })
-    );
+    const [groups, setGroups] = React.useState(initialState);
     const [groupsOperator, setGroupsOperator] = React.useState('_and');
 
     const [filter, setFilter] = useState(null);
@@ -196,8 +187,8 @@
 
 
     B.defineFunction('Add filter group', () => {
-      setFilterGroups([
-        ...filterGroups,
+      handleSetFilterGroups([
+        ...groups,
         {
           id: makeId(),
           operator: '_or',
@@ -205,9 +196,6 @@
           rows: [
             {
               rowId: makeId(),
-              propertyValue: '',
-              operator: 'eq',
-              rightValue: '',
             },
           ],
         },
@@ -215,7 +203,7 @@
     });
 
     B.defineFunction('Reset advanced filter', () => {
-      setFilterGroups(initialState);
+      handleSetFilterGroups(initialState);
     });
 
     const filterProps = (properties, id, inverseId = '') => {
@@ -329,32 +317,9 @@
       };
     };
 
-    const updateRowProperty = (rowId, propertyToUpdate, newValue) => {
-      return filterGroups.map((group) => {
-        const foundRow = group.rows.filter((row) => row.rowId === rowId);
-        if (foundRow.length === 0) {
-          // eslint-disable-next-line no-param-reassign
-          group.groups = updateRowProperty(
-            rowId,
-            group.groups,
-            propertyToUpdate,
-            newValue,
-          );
-          return group;
-        }
-        group.rows.map((row) => {
-          const newRow = row;
-          if (row.rowId === rowId) {
-            newRow[propertyToUpdate] = newValue;
-          }
-          return newRow;
-        });
-        return group;
-      });
-    };
 
-    const updateGroupProperty = (groupId, tree, propertyToUpdate, newValue) => {
-      return tree.map((group) => {
+    const updateGroupProperty = (groupId, groups, propertyToUpdate, newValue) => {
+      return groups.map((group) => {
         if (group.id === groupId) {
           const newGroup = group;
           newGroup[propertyToUpdate] = newValue;
@@ -382,8 +347,8 @@
       });
     };
 
-    const deleteFilter = (tree, rowId) => {
-      return tree.map((group) => {
+    const deleteFilter = (group, rowId) => {
+      return group.map((group) => {
         const foundRow = group.rows.filter((row) => row.rowId === rowId);
         if (foundRow.length === 0) {
           // eslint-disable-next-line no-param-reassign
@@ -463,52 +428,23 @@
       return properties.find(prop => prop.id === id);
     }
 
-
-    const getSelectedProperty = (rowId = "") => {
-      if (!rowId) return null;
-      // Get the row object
-      const rowObject = filterGroups
-        .map(group => group.rows)
-        .flat()
-        .find(row => row.rowId === rowId);
-      if (!rowObject) throw new Error(`Row with id '${rowId}' not found`)
-      // Get the current property id
-      const propertyValue = getRowPropertyValue(rowObject, -1);
-      // Get the property information
-      const prop = getProperty(propertyValue);
-
-      return prop;
-    }
-
-    const getRowPropertyValue = (row = { propertyValue: "" }, level = 0) => {
-      if (!row) return null;
-      const arr = row.propertyValue.split('.')
-      // Return the last element if level is -1
-      if (level === -1) return arr[arr.length - 1];
-      return arr[level];
-    }
-
     const PropertySelector = ({
       properties = [],
-      selectedProp = "",
-      rowId = "",
-      level = 0,
+      onChange = () => undefined,
+      selectedProperty = "",
     }) => {
-
-      const onChange = (event) => {
-        handleChangeLeftValueInput(event.target.value, properties, rowId, level);
-      }
 
       return (
         <TextField
           defaultValue=""
-          value={selectedProp}
+          value={selectedProperty}
           classes={{ root: classes.textFieldHighlight }}
           size="small"
           variant="outlined"
           style={{ marginRight: '10px', width: '100%' }}
           onChange={onChange}
           select
+          name={`property-${selectedProperty}`}
         >
           {
             properties.map(({ id, label, properties }) => {
@@ -524,151 +460,125 @@
       )
     };
 
-    const getRow = (rowId) => {
-      return filterGroups
-        .map(group => group.rows)
-        .flat()
-        .find(row => row.rowId === rowId);
-    }
-
     const getGroup = (groupId) => {
-      return filterGroups.find(group => group.id === groupId);
+      return groups.find(group => group.id === groupId);
     }
 
-    const handleChangeLeftValueInput = (value, properties, rowId, level) => {
-      // Get the property from the value (id) in the properties array
-      const property = properties.find(prop => prop.id === value);
-      // Get the row object
-      const row = getRow(rowId)
-      // Split the current value
-      let currentValue = row.propertyValue.split('.');
-      // Set the value of the current level
-      currentValue[level] = property.id;
+    const getLeftValue = (leftValue, level = 0) => {
+      const value = leftValue.split('.');
+      return value[level];
+    }
 
-      if (currentValue.length > level + 1) {
-        // Remove all values after the current level
-        currentValue = currentValue.slice(0, level + 1);
+    const LeftValueInput = ({ properties, level = 0, setRowPropertyValue = (value = "", properties = [], level = 0) => { }, leftValue = "" }) => {
+      const [value, setValue] = useState(getLeftValue(leftValue, level));
+
+      const prop = filterMappedProperties(properties, value);
+
+      const onChange = (e) => {
+        const value = e.target.value;
+        setValue(value);
+        setRowPropertyValue(value, properties, level);
       }
-
-      currentValue = currentValue.join('.');
-
-      setFilterGroups(
-        updateRowProperty(
-          row.rowId,
-          'propertyValue',
-          currentValue,
-        ),
-      );
-    }
-
-    const LeftValueInput = ({ properties, rowId, level = 0 }) => {
-      const row = getRow(rowId);
-      // Get the current property id
-      const rowPropertyValue = getRowPropertyValue(row, level)
-      // Get the property information
-      const prop = filterMappedProperties(properties, rowPropertyValue);
 
       return (
         <>
           <PropertySelector
             properties={properties}
-            selectedProp={prop ? prop.id : ""}
-            rowId={rowId}
-            level={level}
+            selectedProperty={value}
+            onChange={onChange}
           />
           {
             prop && prop.properties.length > 0 &&
-            <LeftValueInput properties={prop.properties} rowId={rowId} level={level + 1} />
+            <LeftValueInput properties={prop.properties} level={level + 1} setRowPropertyValue={setRowPropertyValue} leftValue={leftValue} />
           }
         </>
       )
     };
 
-    const OperatorSwitch = ({ rowId }) => {
-      const prop = getSelectedProperty(rowId);
-      if (!prop) return null;
+    const OperatorSwitch = ({ prop = "", setOperatorValue = () => { } }) => {
+      const operators = filterOperators(prop ? prop.kind : '');
+      const [operator, setOperator] = useState(operators[0].operator);
 
-      const row = getRow(rowId);
-      if (!row) return null;
+      const onChange = (e) => {
+        const value = e.target.value;
+        setOperator(value);
+        setOperatorValue(value);
+      }
 
       return (
         <TextField
           size="small"
-          value={row.operator}
+          value={operator}
           classes={{ root: classes.textFieldHighlight }}
           style={{ width: '30rem' }}
           fullWidth
           variant="outlined"
           select
-          onChange={(e) => {
-            setFilterGroups(
-              updateRowProperty(
-                rowId,
-                'operator',
-                e.target.value,
-              ),
-            );
-          }}
+          onChange={onChange}
         >
           {
-            filterOperators(prop ? prop.kind : '')
-              .map(({ operator, label }) => {
-                return (
-                  <MenuItem key={operator} value={operator}>
-                    {label}
-                  </MenuItem>
-                );
-              })
+            operators.map(({ operator, label }) => {
+              return (
+                <MenuItem key={operator} value={operator}>
+                  {label}
+                </MenuItem>
+              );
+            })
           }
-        </TextField>
+        </TextField >
       )
     }
+    const handleSetFilterGroups = useCallback((newGroups) => {
+      setGroups(newGroups);
+    }, []);
 
-    
+    const RightValueInput = ({ prop, operator, setRightValue = (value) => { }, rightValue: value = "" }) => {
+      const [rightValue, setRightValueState] = useState(value);
 
-    const RightValueInput = React.memo(({ rowId }) => {
-      const prop = getSelectedProperty(rowId);
-      const row = getRow(rowId);
-      const [rightValue, setRightValue] = useState(row.rightValue);
-
-      if (!prop) return null;
+      const handleBlur = (e) => {
+        setRightValue(rightValue);
+      }
 
       const isNumberType = numberKinds.includes(prop.kind);
-      const isDateType = dateKinds.includes(prop.kind) || dateTimeKinds.includes(prop.kind);
+      const isDateType = dateKinds.includes(prop.kind);
+      const isDateTimeType = dateTimeKinds.includes(prop.kind);
       const isBooleanType = booleanKinds.includes(prop.kind);
       const isListType = prop.kind === 'list';
-      const isSpecialType = row.operator === 'ex' || row.operator === 'nex';
+      const isSpecialType = operator === 'ex' || operator === 'nex';
 
-      useEffect(() => {
-        if(rightValue !== row.rightValue) {
-          setFilterGroups(
-            updateRowProperty(row, 'rightValue', rightValue)
-          );
-        }
-      }, [rightValue]);
-
-      const handleChange = React.useCallback((e) => {
-        e.persist();
-        const { row, type } = e.target.dataset;
+      const handleChange = (e) => {
+        const { type } = e.target.dataset;
 
         if (type === 'date') {
           const d = new Date(e);
           const newRightValue = d.toISOString().split('T')[0];
-          setRightValue(newRightValue);
-        } else if (type === 'boolean') {
+          setRightValueState(newRightValue);
+        } else if (type === 'checkbox') {
           const newRightValue = e.target.checked;
+          setRightValueState(newRightValue);
           setRightValue(newRightValue);
-
         } else if (type === 'number') {
           const value = e.target.value;
           let newRightValue = Number(value);
-          setRightValue(newRightValue);
+          setRightValueState(newRightValue);
         } else {
           const value = e.target.value;
           let newRightValue = value;
-          setRightValue(newRightValue);
+          setRightValueState(newRightValue);
         }
-      }, [])
+      }
+
+      const handleChangeDate = (date, type = "date") => {
+        let newRightValue = ""
+        if (type === "date") {
+          newRightValue = date.toISOString().split('T')[0];
+        } else {
+          newRightValue = date.toISOString();
+        }
+        setRightValueState(newRightValue);
+      }
+
+
 
       if (isSpecialType) {
         return null;
@@ -685,8 +595,8 @@
             fullWidth
             variant="outlined"
             onChange={handleChange}
+            onBlur={handleBlur}
             inputProps={{
-              'data-row': rowId,
               'data-type': 'number',
             }}
           />
@@ -694,6 +604,13 @@
       }
 
       if (isDateType) {
+        // Set default value for date
+        if (rightValue === '') {
+          const today = new Date();
+          setRightValue(today.toISOString().split('T')[0]);
+          // Trigger onBlur to bring inital value to the row
+        }
+
         return (
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
             <KeyboardDatePicker
@@ -708,32 +625,73 @@
               initialFocusedDate={new Date()}
               style={{ width: '100%', margin: '0px' }}
               variant="inline"
+              ampm={false}
               inputVariant="outlined"
               format="dd-MM-yyyy"
               inputProps={{
-                'data-row': rowId,
                 'data-type': 'number',
               }}
               KeyboardButtonProps={{
                 'aria-label': 'change date',
               }}
-              onKeyDown={(e) => {
-                e.preventDefault();
+              allowKeyboardControl={true}
+              onChange={(date) => {
+                handleChangeDate(date, "date");
               }}
-              allowKeyboardControl={false}
-              onChange={handleChange}
+              onBlur={handleBlur}
             />
           </MuiPickersUtilsProvider>
         )
       }
 
+      if (isDateTimeType) {
+        // Set default value for date
+        if (rightValue === '') {
+          const today = new Date();
+          setRightValue(today.toISOString());
+        }
+
+        return (
+          <MuiPickersUtilsProvider utils={DateFnsUtils}>
+            <KeyboardDateTimePicker
+              margin="none"
+              classes={{
+                toolbar: classes.datePicker,
+                daySelected: classes.datePicker,
+                root: classes.textFieldHighlight,
+              }}
+              size="small"
+              value={rightValue === '' ? null : rightValue}
+              initialFocusedDate={new Date()}
+              style={{ width: '100%', margin: '0px' }}
+              variant="inline"
+              ampm={false}
+              inputVariant="outlined"
+              format="dd-MM-yyyy HH:mm"
+              inputProps={{
+                'data-type': 'number',
+              }}
+              KeyboardButtonProps={{
+                'aria-label': 'change date',
+              }}
+              allowKeyboardControl={true}
+              onChange={(date) => handleChangeDate(date, "dateTime")}
+              onBlur={handleBlur} />
+          </MuiPickersUtilsProvider>
+        )
+      }
+
       if (isBooleanType) {
+        // Set default value for boolean
+        if (rightValue === '') {
+          setRightValue(false);
+        }
+
         return (
           <Checkbox
             checked={rightValue}
             classes={{ root: classes.checkBox }}
             inputProps={{
-              'data-row': rowId,
               'data-type': 'checkbox',
             }}
             onChange={handleChange}
@@ -742,6 +700,11 @@
       }
 
       if (isListType) {
+        console.log(prop)
+        // Set default value for list
+        if (rightValue === '' && prop.values.length > 0) {
+          setRightValue(prop.values[0].value);
+        }
         return (
           <TextField
             select
@@ -749,16 +712,15 @@
             value={rightValue}
             classes={{ root: classes.textFieldHighlight }}
             style={{ width: '100%' }}
-            type={inputType()}
             fullWidth
             variant="outlined"
             inputProps={{
-              'data-row': rowId,
               'data-type': 'list',
             }}
             onChange={handleChange}
+            onBlur={handleBlur}
           >
-            {selectedProp.values.map(({ value }) => (
+            {prop.values.map(({ value }) => (
               <MenuItem key={value} value={value}>
                 {value}
               </MenuItem>
@@ -767,7 +729,7 @@
         )
       }
 
-      // Return default text input
+      // Return standard text input by default
       return (
         <TextField
           size="small"
@@ -779,57 +741,106 @@
           fullWidth
           variant="outlined"
           inputProps={{
-            'data-row': rowId,
             'data-type': 'text',
           }}
           onChange={handleChange}
+          onBlur={handleBlur}
         />
       )
+    };
 
-    });
-
-
-    const FilterRow = ({ rowId, removeable }) => {
-      console.log("FilterRow gets rendered")
+    const FilterRow = ({ row = {}, removeable = false }) => {
       if (!modelId) return <p>Please select a model</p>;
-      const row = getRow(rowId);
-      if(!row) {
-        console.error(`Row with id '${rowId}' not found`);
-        return null;
-      }
 
       const mappedWhiteList = mapWhitelist(propertyWhiteList);
       const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList);
 
+      const [filter, setFilter] = useState(row);
+
+
+      // Set default value for propertyValue
+      if (row.propertyValue === '' && mappedProperties.length > 0) {
+        row.propertyValue = mappedProperties[0].id;
+      }
+
       useEffect(() => {
-        // Set the default property value
-        if (row.propertyValue === '') {
-          const defaultProperty = mappedProperties[0];
-          setFilterGroups(
-            updateRowProperty(
-              row.rowId,
-              'propertyValue',
-              defaultProperty.id,
-            ),
-          );
+        if (!filter) return;
+        if (filter === row) return;
+        // Update the row inside the group where the rowId matches when the filter changes
+        const group = groups.find(group => group.rows.find(r => r.rowId === row.rowId));
+        if (group) {
+          const newGroups = groups.map(g => {
+            if (g.id === group.id) {
+              g.rows = g.rows.map(r => {
+                if (r.rowId === row.rowId) {
+                  return filter;
+                }
+                return r;
+              })
+            }
+            return g;
+
+          })
+          console.log(newGroups)
+          handleSetFilterGroups(newGroups);
         }
-      }, [mappedProperties])
+      }, [filter])
+
+      const setPropertyValue = (propertyValue = "", properties = [], level = 0) => {
+        const property = filterMappedProperties(properties, propertyValue);
+        // Split the current value
+        let currentValue = filter.propertyValue.split('.');
+        // Set the value of the current level
+        currentValue[level] = propertyValue;
+
+        if (property.kind === 'belongs_to' || property.kind === 'has_many') {
+          // If the property is a relation, add a default level
+          currentValue[level + 1] = properties[0].id;
+        }
+
+        if (currentValue.length > level + 1) {
+          // Remove all values after the current level
+          currentValue = currentValue.slice(0, level + 1);
+        }
+
+        currentValue = currentValue.join('.');
+        const newFilter = {
+          ...filter,
+          propertyValue: currentValue,
+          rightValue: '' // Reset the right value when the property changes
+        };
+        setFilter(newFilter);
+        setCurrentProperty(property);
+
+      };
+
+      const setOperatorValue = (operator) => {
+        const newFilter = { ...filter, operator };
+        setFilter(newFilter);
+      }
+
+      const setRightValue = (rightValue) => {
+        const newFilter = { ...filter, rightValue };
+        setFilter(newFilter);
+      }
+
+      const amountOfLevels = filter.propertyValue.split('.').length;
+      const currentProperty = getProperty(filter.propertyValue.split(".")[amountOfLevels - 1])
 
       return (
         <div style={{ width: '100%', marginBottom: '10px' }}>
           <div style={{ display: 'flex', width: '100%', gap: '1rem', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-              <LeftValueInput properties={mappedProperties} rowId={row.rowId} />
+              <LeftValueInput properties={mappedProperties} setRowPropertyValue={setPropertyValue} leftValue={row.propertyValue} />
             </div>
-            {/* Align operator switch to the right */}
-            <OperatorSwitch rowId={row.rowId} />
-            <RightValueInput rowId={row.rowId} />
+            <OperatorSwitch prop={currentProperty} setOperatorValue={setOperatorValue} />
+            <RightValueInput prop={currentProperty} setRightValue={setRightValue} rightValue={row.rightValue} />
             {removeable && (
               <IconButton
                 aria-label="delete"
-                onClick={() => {
-                  setFilterGroups(deleteFilter(filterGroups, row.rowId));
-                }}
+              // onClick={() => {
+              //   handleSetFilterGroups(deleteFilter(groups, row.rowId));
+              // }}
               >
                 <Icon name="Delete" fontSize="small" />
               </IconButton>
@@ -891,7 +902,8 @@
 
       const handleAddGroup = (e) => {
         e.preventDefault();
-        setFilterGroups(addFilter(filterGroups, group.id));
+
+        handleSetFilterGroups(addFilter(groups, group.id));
       }
       return (
         <Button
@@ -920,8 +932,8 @@
 
       const handleOnClick = (e) => {
         const operator = e.currentTarget.getAttribute('data-value');
-        setFilterGroups(
-          updateGroupProperty(group.id, filterGroups, 'operator', operator),
+        handleSetFilterGroups(
+          updateGroupProperty(group.id, groups, 'operator', operator),
         );
       }
       return (
@@ -953,8 +965,8 @@
     const handleDeleteGroup = (e) => {
       e.preventDefault();
       const groupId = e.currentTarget.getAttribute('data-value');
-      const newGroups = deleteGroup(filterGroups, groupId);
-      setFilterGroups(newGroups);
+      const newGroups = deleteGroup(groups, groupId);
+      handleSetFilterGroups(newGroups);
     }
 
     const handleSetGroupsOperator = (e) => {
@@ -963,19 +975,31 @@
       setGroupsOperator(newGroupsOperator);
     }
 
-    const RenderGroups = React.memo(() => {
-      console.log("RenderGroups gets rendered")
+    const RenderGroups = ({ groups }) => {
+
+      const mapRows = (group) => {
+        return group.rows.map((row, i) => {
+          return (
+            <>
+              {
+                i > 0 && <hr />
+              }
+              <FilterRow row={row} removeable={i > 0} key={`filter-row-${row.rowId}`} />
+            </>
+          )
+        })
+      }
 
       return (
         <>
           <input
             type="hidden"
             name={name}
-            value={encodeURI(JSON.stringify(filter))}
+            value={JSON.stringify(filter)}
           />
           {groups.map((group, index) => (
-            <>
-              <div key={group.id} className={classes.filter}>
+            <div key={`group-${group.id}`}>
+              <div className={classes.filter}>
                 {groups.length > 1 && (
                   <div className={classes.deleteGroup}>
                     <IconButton
@@ -990,20 +1014,14 @@
                 )}
                 <AndOrOperatorSwitch groupId={group.id} />
                 {
-                  isDev ? <FilterRowDev /> : group.rows.map((rowId, i) => {
-                    return (
-                      <>
-                        {
-                          i > 0 && <hr />
-                        }
-                        <FilterRow rowId={rowId} removeable={group.rows.length > 0} key={rowId} />
-                      </>
-                    )
-                  })
+                  isDev ? (
+                    <FilterRowDev />
+                  ) :
+                    mapRows(group)
                 }
                 <AddFilterRowButton group={group} />
               </div>
-              {index + 1 < filterGroups.length && (
+              {index + 1 < groups.length && (
                 <ButtonGroup size="small" style={{ pointerEvents: isDev ? 'none' : 'all' }}>
                   <Button
                     disableElevation
@@ -1027,11 +1045,11 @@
                   </Button>
                 </ButtonGroup>
               )}
-            </>
+            </div>
           ))}
         </>
       );
-    });
+    };
 
 
     B.defineFunction('Apply filter', () => {
@@ -1048,18 +1066,17 @@
 
     const handleApplyFilter = () => {
 
-      const newFilter = makeFilter(filterGroups);
+      const newFilter = makeFilter(groups);
 
       console.info('Filter for datatable ready! Output:');
       console.info(newFilter);
-
 
       B.triggerEvent('onSubmit', newFilter);
     };
 
     return (
       <div className={classes.root} >
-        <RenderGroups />
+        <RenderGroups key={`render-group`} groups={groups} />
       </div>
     )
   })(),
