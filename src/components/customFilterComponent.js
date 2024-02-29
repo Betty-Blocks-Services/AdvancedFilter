@@ -700,7 +700,6 @@
       }
 
       if (isListType) {
-        console.log(prop)
         // Set default value for list
         if (rightValue === '' && prop.values.length > 0) {
           setRightValue(prop.values[0].value);
@@ -781,7 +780,6 @@
             return g;
 
           })
-          console.log(newGroups)
           handleSetFilterGroups(newGroups);
         }
       }, [filter])
