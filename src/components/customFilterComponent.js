@@ -438,28 +438,30 @@
     }) => {
 
       return (
-        <TextField
-          defaultValue=""
-          value={selectedProperty}
-          classes={{ root: classes.textFieldHighlight }}
-          size="small"
-          variant="outlined"
-          style={{ marginRight: '10px', width: '100%' }}
-          onChange={onChange}
-          select
-          name={`property-${selectedProperty}`}
-        >
-          {
-            properties.map(({ id, label, properties }) => {
-              const appendix = properties.length > 0 ? ' »' : '';
-              return (
-                <MenuItem key={id} value={id}>
-                  {label + appendix}
-                </MenuItem>
-              );
-            })
-          }
-        </TextField>
+        <>
+          <TextField
+            defaultValue=""
+            value={selectedProperty}
+            classes={{ root: classes.textFieldHighlight }}
+            size="small"
+            variant="outlined"
+            style={{ marginRight: '10px', width: '100%' }}
+            onChange={onChange}
+            select
+            name={`property-${selectedProperty}`}
+          >
+            {
+              properties.map(({ id, label, properties }) => {
+                const appendix = properties.length > 0 ? ' »' : '';
+                return (
+                  <MenuItem key={id} value={id}>
+                    {label + appendix}
+                  </MenuItem>
+                );
+              })
+            }
+          </TextField>
+        </>
       )
     };
 
@@ -472,9 +474,8 @@
       return value[level];
     }
 
-    const LeftValueInput = ({ properties, level = 0, setRowPropertyValue = (value = "", properties = [], level = 0) => { }, leftValue = "" }) => {
+    const LeftValueInput = ({ properties = [], level = 0, setRowPropertyValue = (value = "", properties = [], level = 0) => { }, leftValue = "" }) => {
       const [value, setValue] = useState(getLeftValue(leftValue, level));
-
       const prop = filterMappedProperties(properties, value);
 
       const onChange = (e) => {
@@ -491,16 +492,17 @@
             onChange={onChange}
           />
           {
-            prop && prop.properties.length > 0 &&
-            <LeftValueInput properties={prop.properties} level={level + 1} setRowPropertyValue={setRowPropertyValue} leftValue={leftValue} />
+            prop && prop.properties.length > 0 && (
+              <LeftValueInput properties={prop.properties} level={level + 1} setRowPropertyValue={setRowPropertyValue} leftValue={leftValue} />
+            )
           }
         </>
       )
     };
 
-    const OperatorSwitch = ({ prop = "", setOperatorValue = () => { } }) => {
+    const OperatorSwitch = ({ prop = "", setOperatorValue = () => { }, operator: value = "eq" }) => {
       const operators = filterOperators(prop ? prop.kind : '');
-      const [operator, setOperator] = useState(operators[0].operator);
+      const [operator, setOperator] = useState(value);
 
       const onChange = (e) => {
         const value = e.target.value;
@@ -783,7 +785,6 @@
         if (!filter) return;
         if (filter === row) return;
         updateRow(row.rowId, filter);
-
       }, [filter])
 
       const setPropertyValue = (propertyValue = "", properties = [], level = 0) => {
@@ -810,8 +811,6 @@
           rightValue: '' // Reset the right value when the property changes
         };
         setFilter(newFilter);
-        setCurrentProperty(property);
-
       };
 
       const setOperatorValue = (operator) => {
@@ -838,12 +837,12 @@
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
               <LeftValueInput properties={mappedProperties} setRowPropertyValue={setPropertyValue} leftValue={row.propertyValue} />
             </div>
-            <OperatorSwitch prop={currentProperty} setOperatorValue={setOperatorValue} />
+            <OperatorSwitch prop={currentProperty} setOperatorValue={setOperatorValue} operator={row.operator} />
             <RightValueInput prop={currentProperty} setRightValue={setRightValue} rightValue={row.rightValue} />
             {removeable && (
               <IconButton
                 aria-label="delete"
-              onClick={deleteRow}
+                onClick={deleteRow}
               >
                 <Icon name="Delete" fontSize="small" />
               </IconButton>
