@@ -187,15 +187,18 @@
 
 
     B.defineFunction('Add filter group', () => {
-      handleSetFilterGroups([
+      setGroups([
         ...groups,
         {
           id: makeId(),
-          operator: '_or',
+          operator: '_and',
           groups: [],
           rows: [
             {
               rowId: makeId(),
+              propertyValue: '',
+              operator: 'eq',
+              rightValue: '',
             },
           ],
         },
@@ -748,6 +751,21 @@
       )
     };
 
+    const updateRow = (rowId, newRow) => {
+      const newGroups = groups.map((group) => {
+        const newGroup = group;
+        newGroup.rows = group.rows.map((row) => {
+          if (row.rowId === rowId) {
+            return newRow;
+          }
+          return row;
+        });
+        return newGroup;
+      });
+
+      handleSetFilterGroups(newGroups);
+    }
+
     const FilterRow = ({ row = {}, removeable = false }) => {
       if (!modelId) return <p>Please select a model</p>;
 
@@ -755,7 +773,6 @@
       const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList);
 
       const [filter, setFilter] = useState(row);
-
 
       // Set default value for propertyValue
       if (row.propertyValue === '' && mappedProperties.length > 0) {
@@ -765,23 +782,8 @@
       useEffect(() => {
         if (!filter) return;
         if (filter === row) return;
-        // Update the row inside the group where the rowId matches when the filter changes
-        const group = groups.find(group => group.rows.find(r => r.rowId === row.rowId));
-        if (group) {
-          const newGroups = groups.map(g => {
-            if (g.id === group.id) {
-              g.rows = g.rows.map(r => {
-                if (r.rowId === row.rowId) {
-                  return filter;
-                }
-                return r;
-              })
-            }
-            return g;
+        updateRow(row.rowId, filter);
 
-          })
-          handleSetFilterGroups(newGroups);
-        }
       }, [filter])
 
       const setPropertyValue = (propertyValue = "", properties = [], level = 0) => {
@@ -822,6 +824,11 @@
         setFilter(newFilter);
       }
 
+      const deleteRow = (e) => {
+        e.preventDefault();
+        handleSetFilterGroups(deleteFilter(groups, row.rowId));
+      }
+
       const amountOfLevels = filter.propertyValue.split('.').length;
       const currentProperty = getProperty(filter.propertyValue.split(".")[amountOfLevels - 1])
 
@@ -836,9 +843,7 @@
             {removeable && (
               <IconButton
                 aria-label="delete"
-              // onClick={() => {
-              //   handleSetFilterGroups(deleteFilter(groups, row.rowId));
-              // }}
+              onClick={deleteRow}
               >
                 <Icon name="Delete" fontSize="small" />
               </IconButton>
@@ -976,13 +981,14 @@
     const RenderGroups = ({ groups }) => {
 
       const mapRows = (group) => {
+        console.log('mapRows', group)
         return group.rows.map((row, i) => {
           return (
             <>
               {
                 i > 0 && <hr />
               }
-              <FilterRow row={row} removeable={i > 0} key={`filter-row-${row.rowId}`} />
+              <FilterRow row={row} removeable={group.rows.length > 1} key={`filter-row-${row.rowId}`} />
             </>
           )
         })
@@ -1011,12 +1017,14 @@
                   </div>
                 )}
                 <AndOrOperatorSwitch groupId={group.id} />
-                {
-                  isDev ? (
-                    <FilterRowDev />
-                  ) :
-                    mapRows(group)
-                }
+                <div style={{ marginTop: groups.length > 1 ? "30px" : "" }}>
+                  {
+                    isDev ? (
+                      <FilterRowDev />
+                    ) :
+                      mapRows(group)
+                  }
+                </div>
                 <AddFilterRowButton group={group} />
               </div>
               {index + 1 < groups.length && (
@@ -1211,10 +1219,10 @@
         right: '15px',
       },
       deleteGroup: {
-        position: 'absolute',
         margin: '0px',
-        top: '0.6rem',
-        right: '0.5rem',
+        position: 'absolute',
+        top: '0',
+        right: '0',
       },
       pristine: {
         borderWidth: '0.0625rem',
