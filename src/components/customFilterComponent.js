@@ -5,14 +5,8 @@
   orientation: 'HORIZONTAL',
   jsx: (() => {
     const { env, Icon, getProperty } = B;
-    const {
-      MenuItem,
-      TextField,
-      Button,
-      ButtonGroup,
-      IconButton,
-      Checkbox,
-    } = window.MaterialUI.Core;
+    const { MenuItem, TextField, Button, ButtonGroup, IconButton, Checkbox } =
+      window.MaterialUI.Core;
     const { DateFnsUtils } = window.MaterialUI;
     const {
       MuiPickersUtilsProvider,
@@ -41,7 +35,6 @@
       }
       return result;
     };
-
 
     const initialState = [
       {
@@ -185,7 +178,6 @@
       },
     ];
 
-
     B.defineFunction('Add filter group', () => {
       setGroups([
         ...groups,
@@ -213,7 +205,8 @@
       return Object.values(properties).filter((prop) => {
         return (
           // Add all properties besides the forbidden
-          (prop.modelId === id && !forbiddenKinds.includes(prop.kind)) &&
+          prop.modelId === id &&
+          !forbiddenKinds.includes(prop.kind) &&
           (inverseId === '' || inverseId !== prop.id)
         );
       });
@@ -225,8 +218,6 @@
         return op.kinds.includes(kind) || op.kinds.includes('*');
       });
     };
-
-
 
     const makeFilterChild = (prop, op, right) => {
       // The prop is stored as a string with a dot notation that represents the path to the property
@@ -320,8 +311,12 @@
       };
     };
 
-
-    const updateGroupProperty = (groupId, groups, propertyToUpdate, newValue) => {
+    const updateGroupProperty = (
+      groupId,
+      groups,
+      propertyToUpdate,
+      newValue,
+    ) => {
       return groups.map((group) => {
         if (group.id === groupId) {
           const newGroup = group;
@@ -368,7 +363,7 @@
       const lines = input.split(',');
       const result = {};
 
-      lines.forEach(line => {
+      lines.forEach((line) => {
         if (line.trim() === '') return;
         const properties = line.trim().split('.');
         let currentObject = result;
@@ -387,16 +382,23 @@
       });
 
       return result;
-    }
+    };
 
-
-    const mapProperties = (properties, id, iteration, whitelist = {}, parent = '') => {
+    const mapProperties = (
+      properties,
+      id,
+      iteration,
+      whitelist = {},
+      parent = '',
+    ) => {
       if (iteration === undefined) iteration = 0;
       if (iteration > 5) return [];
 
       let filteredProps = filterProps(properties, id, parent);
       if (Object.keys(whitelist).length > 0) {
-        filteredProps = filteredProps.filter((prop) => !whitelist || whitelist[prop.name])
+        filteredProps = filteredProps.filter(
+          (prop) => !whitelist || whitelist[prop.name],
+        );
       }
 
       const tree = filteredProps
@@ -405,38 +407,45 @@
           return parent === '' || parent !== prop.inverseAssociationId;
         })
         .map((prop) => {
-          if ((prop.kind === 'belongs_to' || prop.kind === 'has_many') && iteration !== 5) {
-            const props = mapProperties(properties, prop.referenceModelId, iteration + 1, whitelist ? whitelist[prop.name] : undefined, prop.id);
+          if (
+            (prop.kind === 'belongs_to' || prop.kind === 'has_many') &&
+            iteration !== 5
+          ) {
+            const props = mapProperties(
+              properties,
+              prop.referenceModelId,
+              iteration + 1,
+              whitelist ? whitelist[prop.name] : undefined,
+              prop.id,
+            );
             return {
               ...prop,
               properties: props,
-            }
-
+            };
           }
           return {
             ...prop,
             properties: [],
-          }
+          };
         })
         .sort((a, b) => {
           // Locale compare to sort alphabetically
           return a.label.localeCompare(b.label);
         });
       return tree;
-    }
+    };
 
-    const filterMappedProperties = (properties = [], id = "") => {
+    const filterMappedProperties = (properties = [], id = '') => {
       // Always return the first property if no id is given
-      if (id === "") return properties[0];
-      return properties.find(prop => prop.id === id);
-    }
+      if (id === '') return properties[0];
+      return properties.find((prop) => prop.id === id);
+    };
 
     const PropertySelector = ({
       properties = [],
       onChange = () => undefined,
-      selectedProperty = "",
+      selectedProperty = '',
     }) => {
-
       return (
         <TextField
           defaultValue=""
@@ -449,30 +458,33 @@
           select
           name={`property-${selectedProperty}`}
         >
-          {
-            properties.map(({ id, label, properties }) => {
-              const appendix = properties.length > 0 ? ' »' : '';
-              return (
-                <MenuItem key={id} value={id}>
-                  {label + appendix}
-                </MenuItem>
-              );
-            })
-          }
+          {properties.map(({ id, label, properties }) => {
+            const appendix = properties.length > 0 ? ' »' : '';
+            return (
+              <MenuItem key={id} value={id}>
+                {label + appendix}
+              </MenuItem>
+            );
+          })}
         </TextField>
-      )
+      );
     };
 
     const getGroup = (groupId) => {
-      return groups.find(group => group.id === groupId);
-    }
+      return groups.find((group) => group.id === groupId);
+    };
 
     const getLeftValue = (leftValue, level = 0) => {
       const value = leftValue.split('.');
       return value[level];
-    }
+    };
 
-    const LeftValueInput = ({ properties, level = 0, setRowPropertyValue = (value = "", properties = [], level = 0) => { }, leftValue = "" }) => {
+    const LeftValueInput = ({
+      properties,
+      level = 0,
+      setRowPropertyValue = (value = '', properties = [], level = 0) => {},
+      leftValue = '',
+    }) => {
       const [value, setValue] = useState(getLeftValue(leftValue, level));
 
       const prop = filterMappedProperties(properties, value);
@@ -481,7 +493,7 @@
         const value = e.target.value;
         setValue(value);
         setRowPropertyValue(value, properties, level);
-      }
+      };
 
       return (
         <>
@@ -490,15 +502,19 @@
             selectedProperty={value}
             onChange={onChange}
           />
-          {
-            prop && prop.properties.length > 0 &&
-            <LeftValueInput properties={prop.properties} level={level + 1} setRowPropertyValue={setRowPropertyValue} leftValue={leftValue} />
-          }
+          {prop && prop.properties.length > 0 && (
+            <LeftValueInput
+              properties={prop.properties}
+              level={level + 1}
+              setRowPropertyValue={setRowPropertyValue}
+              leftValue={leftValue}
+            />
+          )}
         </>
-      )
+      );
     };
 
-    const OperatorSwitch = ({ prop = "", setOperatorValue = () => { } }) => {
+    const OperatorSwitch = ({ prop = '', setOperatorValue = () => {} }) => {
       const operators = filterOperators(prop ? prop.kind : '');
       const [operator, setOperator] = useState(operators[0].operator);
 
@@ -506,7 +522,7 @@
         const value = e.target.value;
         setOperator(value);
         setOperatorValue(value);
-      }
+      };
 
       return (
         <TextField
@@ -519,28 +535,36 @@
           select
           onChange={onChange}
         >
-          {
-            operators.map(({ operator, label }) => {
-              return (
-                <MenuItem key={operator} value={operator}>
-                  {label}
-                </MenuItem>
-              );
-            })
-          }
-        </TextField >
-      )
-    }
+          {operators.map(({ operator, label }) => {
+            return (
+              <MenuItem key={operator} value={operator}>
+                {label}
+              </MenuItem>
+            );
+          })}
+        </TextField>
+      );
+    };
+
     const handleSetFilterGroups = useCallback((newGroups) => {
       setGroups(newGroups);
     }, []);
 
-    const RightValueInput = ({ prop, operator, setRightValue = (value) => { }, rightValue: value = "" }) => {
+    const RightValueInput = ({
+      prop,
+      operator,
+      setRightValue = (value) => {},
+      rightValue: value = '',
+    }) => {
+      if (operator === 'ex' || operator === 'nex') {
+        return console.log(operator);
+      }
+
       const [rightValue, setRightValueState] = useState(value);
 
       const handleBlur = (e) => {
         setRightValue(rightValue);
-      }
+      };
 
       const isNumberType = numberKinds.includes(prop.kind);
       const isDateType = dateKinds.includes(prop.kind);
@@ -569,19 +593,17 @@
           let newRightValue = value;
           setRightValueState(newRightValue);
         }
-      }
+      };
 
-      const handleChangeDate = (date, type = "date") => {
-        let newRightValue = ""
-        if (type === "date") {
+      const handleChangeDate = (date, type = 'date') => {
+        let newRightValue = '';
+        if (type === 'date') {
           newRightValue = date.toISOString().split('T')[0];
         } else {
           newRightValue = date.toISOString();
         }
         setRightValueState(newRightValue);
-      }
-
-
+      };
 
       if (isSpecialType) {
         return null;
@@ -603,7 +625,7 @@
               'data-type': 'number',
             }}
           />
-        )
+        );
       }
 
       if (isDateType) {
@@ -639,12 +661,12 @@
               }}
               allowKeyboardControl={true}
               onChange={(date) => {
-                handleChangeDate(date, "date");
+                handleChangeDate(date, 'date');
               }}
               onBlur={handleBlur}
             />
           </MuiPickersUtilsProvider>
-        )
+        );
       }
 
       if (isDateTimeType) {
@@ -678,10 +700,11 @@
                 'aria-label': 'change date',
               }}
               allowKeyboardControl={true}
-              onChange={(date) => handleChangeDate(date, "dateTime")}
-              onBlur={handleBlur} />
+              onChange={(date) => handleChangeDate(date, 'dateTime')}
+              onBlur={handleBlur}
+            />
           </MuiPickersUtilsProvider>
-        )
+        );
       }
 
       if (isBooleanType) {
@@ -699,7 +722,7 @@
             }}
             onChange={handleChange}
           />
-        )
+        );
       }
 
       if (isListType) {
@@ -728,18 +751,17 @@
               </MenuItem>
             ))}
           </TextField>
-        )
+        );
       }
 
       // Return standard text input by default
       return (
         <TextField
           size="small"
-          value={rightValue
-          }
+          value={rightValue}
           classes={{ root: classes.textFieldHighlight }}
           style={{ width: '100%' }}
-          type='text'
+          type="text"
           fullWidth
           variant="outlined"
           inputProps={{
@@ -748,7 +770,7 @@
           onChange={handleChange}
           onBlur={handleBlur}
         />
-      )
+      );
     };
 
     const updateRow = (rowId, newRow) => {
@@ -764,13 +786,18 @@
       });
 
       handleSetFilterGroups(newGroups);
-    }
+    };
 
     const FilterRow = ({ row = {}, removeable = false }) => {
       if (!modelId) return <p>Please select a model</p>;
 
       const mappedWhiteList = mapWhitelist(propertyWhiteList);
-      const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList);
+      const mappedProperties = mapProperties(
+        properties,
+        modelId,
+        0,
+        mappedWhiteList,
+      );
 
       const [filter, setFilter] = useState(row);
 
@@ -783,10 +810,13 @@
         if (!filter) return;
         if (filter === row) return;
         updateRow(row.rowId, filter);
+      }, [filter]);
 
-      }, [filter])
-
-      const setPropertyValue = (propertyValue = "", properties = [], level = 0) => {
+      const setPropertyValue = (
+        propertyValue = '',
+        properties = [],
+        level = 0,
+      ) => {
         const property = filterMappedProperties(properties, propertyValue);
         // Split the current value
         let currentValue = filter.propertyValue.split('.');
@@ -807,50 +837,72 @@
         const newFilter = {
           ...filter,
           propertyValue: currentValue,
-          rightValue: '' // Reset the right value when the property changes
+          rightValue: '', // Reset the right value when the property changes
         };
         setFilter(newFilter);
         setCurrentProperty(property);
-
       };
 
       const setOperatorValue = (operator) => {
         const newFilter = { ...filter, operator };
         setFilter(newFilter);
-      }
+      };
 
       const setRightValue = (rightValue) => {
         const newFilter = { ...filter, rightValue };
         setFilter(newFilter);
-      }
+      };
 
       const deleteRow = (e) => {
         e.preventDefault();
         handleSetFilterGroups(deleteFilter(groups, row.rowId));
-      }
+      };
 
       const amountOfLevels = filter.propertyValue.split('.').length;
-      const currentProperty = getProperty(filter.propertyValue.split(".")[amountOfLevels - 1])
+      const currentProperty = getProperty(
+        filter.propertyValue.split('.')[amountOfLevels - 1],
+      );
 
       return (
         <div style={{ width: '100%', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', width: '100%', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-              <LeftValueInput properties={mappedProperties} setRowPropertyValue={setPropertyValue} leftValue={row.propertyValue} />
+          <div
+            style={{
+              display: 'flex',
+              width: '100%',
+              gap: '1rem',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                width: '100%',
+              }}
+            >
+              <LeftValueInput
+                properties={mappedProperties}
+                setRowPropertyValue={setPropertyValue}
+                leftValue={row.propertyValue}
+              />
             </div>
-            <OperatorSwitch prop={currentProperty} setOperatorValue={setOperatorValue} />
-            <RightValueInput prop={currentProperty} setRightValue={setRightValue} rightValue={row.rightValue} />
+            <OperatorSwitch
+              prop={currentProperty}
+              setOperatorValue={setOperatorValue}
+            />
+            <RightValueInput
+              prop={currentProperty}
+              setRightValue={setRightValue}
+              rightValue={row.rightValue}
+            />
             {removeable && (
-              <IconButton
-                aria-label="delete"
-              onClick={deleteRow}
-              >
+              <IconButton aria-label="delete" onClick={deleteRow}>
                 <Icon name="Delete" fontSize="small" />
               </IconButton>
             )}
           </div>
-        </div >
-
+        </div>
       );
     };
 
@@ -902,16 +954,18 @@
     };
 
     const AddFilterRowButton = ({ group }) => {
-
       const handleAddGroup = (e) => {
         e.preventDefault();
 
         handleSetFilterGroups(addFilter(groups, group.id));
-      }
+      };
       return (
         <Button
           type="button"
-          style={{ textTransform: 'none', pointerEvents: isDev ? 'none' : 'all' }}
+          style={{
+            textTransform: 'none',
+            pointerEvents: isDev ? 'none' : 'all',
+          }}
           onClick={handleAddGroup}
         >
           <Icon name="Add" fontSize="small" />
@@ -938,9 +992,13 @@
         handleSetFilterGroups(
           updateGroupProperty(group.id, groups, 'operator', operator),
         );
-      }
+      };
       return (
-        <ButtonGroup size="small" className={classes.operator} style={{ pointerEvents: isDev ? 'none' : 'all' }}>
+        <ButtonGroup
+          size="small"
+          className={classes.operator}
+          style={{ pointerEvents: isDev ? 'none' : 'all' }}
+        >
           <Button
             disableElevation
             variant="contained"
@@ -970,37 +1028,34 @@
       const groupId = e.currentTarget.getAttribute('data-value');
       const newGroups = deleteGroup(groups, groupId);
       handleSetFilterGroups(newGroups);
-    }
+    };
 
     const handleSetGroupsOperator = (e) => {
       e.preventDefault();
       const newGroupsOperator = e.currentTarget.getAttribute('data-value');
       setGroupsOperator(newGroupsOperator);
-    }
+    };
 
     const RenderGroups = ({ groups }) => {
-
       const mapRows = (group) => {
-        console.log('mapRows', group)
+        console.log('mapRows', group);
         return group.rows.map((row, i) => {
           return (
             <>
-              {
-                i > 0 && <hr />
-              }
-              <FilterRow row={row} removeable={group.rows.length > 1} key={`filter-row-${row.rowId}`} />
+              {i > 0 && <hr />}
+              <FilterRow
+                row={row}
+                removeable={group.rows.length > 1}
+                key={`filter-row-${row.rowId}`}
+              />
             </>
-          )
-        })
-      }
+          );
+        });
+      };
 
       return (
         <>
-          <input
-            type="hidden"
-            name={name}
-            value={JSON.stringify(filter)}
-          />
+          <input type="hidden" name={name} value={JSON.stringify(filter)} />
           {groups.map((group, index) => (
             <div key={`group-${group.id}`}>
               <div className={classes.filter}>
@@ -1017,18 +1072,16 @@
                   </div>
                 )}
                 <AndOrOperatorSwitch groupId={group.id} />
-                <div style={{ marginTop: groups.length > 1 ? "30px" : "" }}>
-                  {
-                    isDev ? (
-                      <FilterRowDev />
-                    ) :
-                      mapRows(group)
-                  }
+                <div style={{ marginTop: groups.length > 1 ? '30px' : '' }}>
+                  {isDev ? <FilterRowDev /> : mapRows(group)}
                 </div>
                 <AddFilterRowButton group={group} />
               </div>
               {index + 1 < groups.length && (
-                <ButtonGroup size="small" style={{ pointerEvents: isDev ? 'none' : 'all' }}>
+                <ButtonGroup
+                  size="small"
+                  style={{ pointerEvents: isDev ? 'none' : 'all' }}
+                >
                   <Button
                     disableElevation
                     variant="contained"
@@ -1057,7 +1110,6 @@
       );
     };
 
-
     B.defineFunction('Apply filter', () => {
       try {
         console.info('Applying filter... Please wait');
@@ -1071,7 +1123,6 @@
     });
 
     const handleApplyFilter = () => {
-
       const newFilter = makeFilter(groups);
 
       console.info('Filter for datatable ready! Output:');
@@ -1081,10 +1132,10 @@
     };
 
     return (
-      <div className={classes.root} >
+      <div className={classes.root}>
         <RenderGroups key={`render-group`} groups={groups} />
       </div>
-    )
+    );
   })(),
   styles: (B) => (theme) => {
     const { env, Styling, mediaMinWidth } = B;
@@ -1141,12 +1192,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-            {
-              borderColor: ({ options: { highlightColor } }) => [
-                style.getColor(highlightColor),
-                '!important',
-              ],
-            },
+              {
+                borderColor: ({ options: { highlightColor } }) => [
+                  style.getColor(highlightColor),
+                  '!important',
+                ],
+              },
           },
         },
       },
