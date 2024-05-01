@@ -1,25 +1,24 @@
-# CustomFilterComponent
+# Custom Filter Component
 
-The CustomFilterComponent allows you to filter relational data. It's important to note that this functionality is specifically designed for use with "Has Many" and "Belongs to" relations and is limited to one level of depth.
+The Custom Filter Component allows users to filter a datatable or datalist based on desired properties. It supports up to 6 levels of relational filtering.
 
 ## Property Whitelist
 
-The property whitelist displays all available filter options. To customize the displayed properties, follow these steps:
+The whitelist is a feature of the Filter Component that allows you to specify which properties should be displayed on the left-hand side (LHS) of the filter. This includes both direct properties and properties from related data.
 
-1. Open the data model to view its properties.
-   ![Data Model](public/image1.png)
+How to use the whitelist:
 
-2. Next to each property, find the database name. Use this name but remove underscores "_" and capitalize each letter that follows the underscore. For example, `amount_of_items` becomes `amountOfItems`.
+1. Go to the Property Whitelist section in the component options.
+2. Define the properties you want to show in the LHS field and separate them with a comma (,).
+π
+The properties you define should have the same format as the dataAPI (camelCase). If you are uncertain what this format is, you can head over to your model in de model viewer and take a look at the `DATABASE NAME` column. Replace each character after the underscore (_), with a capital letter and then remove the underscore. So, for instance: `my_property_name` becomes `myPropertyName`.
 
-3. Fill in the desired properties in the Property Whitelist:
-   ![Whitelist Example](public/image2.png)
-   ![Whitelist Example](public/image3.png)
+### Relational whitelisting
 
-## Relational Filtering
+If you want to whitelist properties from relational data, you can do by adhering to the following format:
+Let's say we have a model `shoppingCart` and`shoppingCart` **has many** `shopItems`. To whitelist the properties of the `shopItems`, we can define the whitelist as follows:
+`shopItems.name`
 
-If you want to display specific properties from your relational model, use the following format:
-```webuser(firstName,lastName)```
-This example will show the Webuser as a property that the user can select. After selecting this property, a new select field will appear. In this field, the user can choose from the whitelisted properties (or all if no whitelist is set).
+## Property Blacklist
 
-### IMPORTANT NOTES:
-The ID will always be visible as an option.
+The blacklist is the exact opposite feature of the whitelist. This feature allows you to specify which properties should **not** be displayed on the LHS of the filter. 
