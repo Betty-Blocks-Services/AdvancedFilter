@@ -1,24 +1,24 @@
 # Custom Filter Component
 
-The Custom Filter Component allows users to filter a datatable or datalist based on desired properties. It supports up to 6 levels of relational filtering.
+The Custom Filter Component helps you filter a datatable or datalist based on specific properties. You can apply up to 6 levels of filtering.
 
 ## Property Whitelist
 
-The whitelist is a feature of the Filter Component that allows you to specify which properties should be displayed on the left-hand side (LHS) of the filter. This includes both direct properties and properties from related data.
+The whitelist is a feature that lets you choose which properties should be shown on the left-hand side (LHS) of the filter. This includes both direct properties and properties from related data.
 
-How to use the whitelist:
+How to use the whitelist
 
 1. Go to the Property Whitelist section in the component options.
-2. Define the properties you want to show in the LHS field and separate them with a comma (,).
-π
-The properties you define should have the same format as the dataAPI (camelCase). If you are uncertain what this format is, you can head over to your model in de model viewer and take a look at the `DATABASE NAME` column. Replace each character after the underscore (_), with a capital letter and then remove the underscore. So, for instance: `my_property_name` becomes `myPropertyName`.
+2. Enter the properties you want to see in the LHS field and separate them with a comma (,).
+
+The properties you enter should have the same format as the dataAPI (camelCase). If you are not sure about the format or name of the property, you can check the `DATABASE NAME` column in the model viewer. Replace each character after the underscore (_) with a capital letter and remove the underscore. So, for example: if the property is `my_property_name`, it becomes `myPropertyName`.
 
 ### Relational whitelisting
 
-If you want to whitelist properties from relational data, you can do by adhering to the following format:
-Let's say we have a model `shoppingCart` and`shoppingCart` **has many** `shopItems`. To whitelist the properties of the `shopItems`, we can define the whitelist as follows:
+If you want to include properties from related data, follow this format:
+Let's say we have a model called `shoppingCart` and`shoppingCart` **has many** `shopItems`. To include the properties of `shopItems` in the whitelist, use the following format:
 `shopItems.name`
 
 ## Property Blacklist
 
-The blacklist is the exact opposite feature of the whitelist. This feature allows you to specify which properties should **not** be displayed on the LHS of the filter. 
+The blacklist is the opposite of the whitelist. It allows you to specify which properties should not be shown on the LHS of the filter.
