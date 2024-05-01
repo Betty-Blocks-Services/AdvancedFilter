@@ -58,7 +58,7 @@ export const filterComponentOptions = {
       as: 'MULTILINE'
     }
   }),
-  propertyBlackLicks: text('Property Blacklist', {
+  propertyBlacklist: text('Property Blacklist', {
     value: 'id',
     configuration: {
       as: 'MULTILINE'

@@ -17,7 +17,7 @@
     const {
       modelId,
       propertyWhiteList,
-      propertyBlackList,
+      propertyBlacklist,
       actionVariableId: name,
     } = options;
     const isDev = env === 'dev';
@@ -359,7 +359,7 @@
       });
     };
 
-    const mapWhitelist = (input = '') => {
+    const mapList = (input = '') => {
       const lines = input.split(',');
       const result = {};
 
@@ -384,13 +384,8 @@
       return result;
     };
 
-    const mapProperties = (
-      properties,
-      id,
-      iteration,
-      whitelist = {},
-      parent = '',
-    ) => {
+
+    const mapProperties = (properties, id, iteration, whitelist = {}, blacklist = {}, parent = '') => {
       if (iteration === undefined) iteration = 0;
       if (iteration > 5) return [];
 
@@ -401,22 +396,26 @@
         );
       }
 
+      if (Object.keys(blacklist).length > 0) {
+        filteredProps = filteredProps.filter(
+          (prop) => !blacklist[prop.name]
+        );
+      }
+
       const tree = filteredProps
         .filter((prop) => {
           // Prevent recursion by checking if the inverse association is not the same as the parent
           return parent === '' || parent !== prop.inverseAssociationId;
         })
         .map((prop) => {
-          if (
-            (prop.kind === 'belongs_to' || prop.kind === 'has_many') &&
-            iteration !== 5
-          ) {
+          if ((prop.kind === 'belongs_to' || prop.kind === 'has_many') && iteration !== 5) {
             const props = mapProperties(
               properties,
               prop.referenceModelId,
               iteration + 1,
               whitelist ? whitelist[prop.name] : undefined,
-              prop.id,
+              blacklist,
+              prop.id
             );
             return {
               ...prop,
@@ -489,6 +488,13 @@
     }) => {
       const [value, setValue] = useState(getLeftValue(leftValue, level));
       const prop = filterMappedProperties(properties, value);
+
+
+      useEffect(() => {
+        if (level > 0 && properties.length > 0 && value === undefined) {
+          setValue(properties[0].id)
+        }
+      }, [])
 
       const onChange = (e) => {
         const value = e.target.value;
@@ -568,8 +574,7 @@
 
       const handleBlur = (e) => {
         setRightValue(rightValue);
-      };
-
+      }
       const isNumberType = numberKinds.includes(prop.kind);
       const isDateType = dateKinds.includes(prop.kind);
       const isDateTimeType = dateTimeKinds.includes(prop.kind);
@@ -795,13 +800,9 @@
     const FilterRow = ({ row = {}, removeable = false }) => {
       if (!modelId) return <p>Please select a model</p>;
 
-      const mappedWhiteList = mapWhitelist(propertyWhiteList);
-      const mappedProperties = mapProperties(
-        properties,
-        modelId,
-        0,
-        mappedWhiteList,
-      );
+      const mappedWhiteList = mapList(propertyWhiteList);
+      const mappedBlackList = mapList(propertyBlacklist);
+      const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList, mappedBlackList);
 
       const [filter, setFilter] = useState(row);
 
@@ -890,17 +891,8 @@
                 leftValue={row.propertyValue}
               />
             </div>
-            <OperatorSwitch
-              prop={currentProperty}
-              setOperatorValue={setOperatorValue}
-              operator={row.operator}
-            />
-            <RightValueInput
-              prop={currentProperty}
-              operator={row.operator}
-              setRightValue={setRightValue}
-              rightValue={row.rightValue}
-            />
+            <OperatorSwitch prop={currentProperty} setOperatorValue={setOperatorValue} operator={row.operator} />
+            <RightValueInput prop={currentProperty} setRightValue={setRightValue} rightValue={row.rightValue} operator={row.operator} />
             {removeable && (
               <IconButton aria-label="delete" onClick={deleteRow}>
                 <Icon name="Delete" fontSize="small" />
@@ -1043,7 +1035,6 @@
 
     const RenderGroups = ({ groups }) => {
       const mapRows = (group) => {
-        console.log('mapRows', group);
         return group.rows.map((row, i) => {
           return (
             <>
