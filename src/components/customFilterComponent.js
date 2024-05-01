@@ -86,12 +86,7 @@
     const dateTimeKinds = ['date_time_expression', 'date_time', 'time'];
     const booleanKinds = ['boolean', 'boolean_expression'];
     const forbiddenKinds = [
-      'has_and_belongs_to_many',
-      'has_one',
-      'image',
-      'file',
       'password',
-      'pdf',
       'multi_image',
       'multi_file',
     ];
