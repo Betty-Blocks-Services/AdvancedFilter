@@ -58,7 +58,7 @@
     const [groups, setGroups] = React.useState(initialState);
     const [groupsOperator, setGroupsOperator] = React.useState('_and');
 
-    const [filter, setFilter] = useState(null);
+    const [readableFilter, setReadableFilter] = useState(null);
 
     const stringKinds = [
       'string',
@@ -1063,7 +1063,7 @@
 
       return (
         <>
-          <input type="hidden" name={name} value={JSON.stringify(filter)} />
+          <input type="hidden" name={name} value={JSON.stringify(readableFilter)} />
           {groups.map((group, index) => (
             <div key={`group-${group.id}`}>
               <div className={classes.filter}>
@@ -1136,7 +1136,9 @@
 
       const readableFilter = makeReadableFilter(Object.assign({}, filter));
       console.info('Readable filter:', readableFilter);
+      setReadableFilter(readableFilter);
 
+      
       B.triggerEvent('onSubmit', filter);
     };
 
