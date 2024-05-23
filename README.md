@@ -1,8 +1,8 @@
 # Custom Filter Component
 
-The Custom Filter Component helps you filter a datatable or datalist based on specific properties. You can apply up to 6 levels of filtering.
+The Custom Filter Component helps you filter a datatable or datalist based on specific properties and relational data. You can use up to 6 levels of relational filtering.
 
-## Property Whitelist
+## Property Whitelist & Blacklist
 
 The whitelist is a feature that lets you choose which properties should be shown on the left-hand side (LHS) of the filter. This includes both direct properties and properties from related data.
 
@@ -19,6 +19,34 @@ If you want to include properties from related data, follow this format:
 Let's say we have a model called `shoppingCart` and`shoppingCart` **has many** `shopItems`. To include the properties of `shopItems` in the whitelist, use the following format:
 `shopItems.name`
 
-## Property Blacklist
+### Property Blacklist
 
-The blacklist is the opposite of the whitelist. It allows you to specify which properties should not be shown on the LHS of the filter.
+The blacklist is the exact opposite of the whitelist. It allows you to specify which properties should not be shown on the LHS of the filter.
+
+## Saving the filter (for actions)
+
+Occassionally you wish to save the filter that the user has defined. Here's how you do it:
+1. Drop a form on your page if not already present.
+2. Place the Custom Filter Component in the form. A Action Variable picker should display in the options panel of the component.
+
+![Filter in form](public/image.png)
+
+3. Select/Create an action variable.
+
+![Filter Options](public/image1.png)
+
+4. To use the filter, you still have to parse it using the block `Parse JSON` which can be found [here](https://my.bettyblocks.com/block-store/0e2b5a6c-24ae-4f7f-9d07-10ab64c9155c).
+5. You can now use the filter in your actions! 
+
+![Logging](public/image2.png)
+
+
+
+
+## Feature Requests
+
+You can create feature requests in the Issues section of the original repository, which can be found [here](https://github.com/Betty-Services/CustomFilter/issues)
+
+## Contributing
+
+Everybody can contribute to this component. If you wish to help maintain this project, please do so by creating a pull request. 
