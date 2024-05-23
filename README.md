@@ -23,9 +23,9 @@ Let's say we have a model called `shoppingCart` and`shoppingCart` **has many** `
 
 The blacklist is the exact opposite of the whitelist. It allows you to specify which properties should not be shown on the LHS of the filter.
 
-## Saving the filter (for actions)
+## Using the filter in your actions
 
-Occassionally you wish to save the filter that the user has defined. Here's how you do it:
+Occassionally you wish to use the filter that the user has defined in your actions. For example, when exporting filtered data. Here's how to do it:
 1. Drop a form on your page if not already present.
 2. Place the Custom Filter Component in the form. A Action Variable picker should display in the options panel of the component.
 
