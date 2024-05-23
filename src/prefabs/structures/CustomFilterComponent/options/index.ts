@@ -10,6 +10,62 @@ import {
 } from '@betty-blocks/component-sdk';
 import { advanced } from '../advanced';
 
+export const categories = [
+  {
+    label: 'Data',
+    expanded: true,
+    members: [
+      'modelId',
+      'actionVariableId'
+    ],
+  },
+  {
+    label: 'Filter',
+    expanded: true,
+    members: [
+      'addFilterRowText',
+      'ANDText',
+      'ORText',
+    ],
+  },
+  {
+    label: 'Whitelist / Blacklist',
+    expanded: false,
+    members: [
+      'propertyWhiteList',
+      'propertyBlacklist',
+    ],
+  },
+  {
+    label: 'Layout',
+    expanded: false,
+    members: [
+      'height',
+      'width',
+      'outerSpacing',
+    ],
+  },
+  {
+    label: 'Style',
+    expanded: false,
+    members: [
+      'highlightColor',
+      'textColor',
+      'borderColor',
+      'borderRadius',
+      'backgroundColor',
+      'backgroundColorAlpha',
+    ],
+  },
+  {
+    label: 'Advanced',
+    expanded: false,
+    members: [
+      'dataComponentAttribute',
+    ],
+  },
+]
+
 export const filterComponentOptions = {
   actionVariableId: option('ACTION_JS_VARIABLE', {
     label: 'Action input variable',
@@ -52,6 +108,15 @@ export const filterComponentOptions = {
   backgroundColorAlpha: option('NUMBER', {
     label: 'Background color opacity',
     value: 100,
+  }),
+  addFilterRowText: text('Add Filter Row Text', {
+    value: 'Add Filter Row',
+  }),
+  ANDText: text('AND Text', {
+    value: 'AND',
+  }),
+  ORText: text('OR Text', {
+    value: 'OR',
   }),
   propertyWhiteList: text('Property Whitelist', {
     configuration: {

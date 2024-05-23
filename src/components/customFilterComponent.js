@@ -16,6 +16,9 @@
 
     const {
       modelId,
+      addFilterRowText,
+      ANDText,
+      ORText,
       propertyWhiteList,
       propertyBlacklist,
       actionVariableId: name,
@@ -266,45 +269,59 @@
       };
     };
 
-    const makeReadableFilter = (tree) => {
-      return {
-        where: {
-          [groupsOperator]: tree.map((node) => {
-            return {
-              [node.operator]: node.rows.map((subnode) => {
-                // Get the key of the propertyValue. This is the id of the property
-                if (typeof subnode.propertyValue === 'string') {
-                  const propertyInfo = getProperty(subnode.propertyValue);
-                  // Use the id  of the property to get its information
-                  // Get the name of the property from the propertyInfo
-                  const propertyName = propertyInfo.name;
+    function makeReadableFilter(f) {
+      console.log('Before translation:', f)
+      // Create a deep copy of the f object to prevent overwriting the original object
+      const where = {
+      ...f.where
+      }
+      const { _and, _or } = where;
+      const groups = _and || _or;
 
-                  return makeFilterChild(
-                    propertyName,
-                    subnode.operator,
-                    subnode.rightValue,
-                  );
-                }
-                if (typeof subnode.propertyValue === 'object') {
-                  const key = Object.keys(subnode.propertyValue)[0];
-                  const value = Object.values(subnode.propertyValue)[0];
-                  const modelInfo = getProperty(key);
-                  const modelName = modelInfo.name;
-                  const propertyInfo = getProperty(value);
-                  const propertyName = propertyInfo.name;
+      const translateKeys = (row) => {
+      const result = {};
+      const key = Object.keys(row)[0];
+      const value = row[key];
 
-                  return makeFilterChild(
-                    { [modelName]: propertyName },
-                    subnode.operator,
-                    subnode.rightValue,
-                  );
-                }
-              }),
-            };
-          }),
-        },
+      if (typeof value === 'object') {
+        const { name } = getProperty(key);
+        result[name] = translateKeys(value);
+      } else {
+        result[key] = value;
+      }
+
+      return result;
       };
-    };
+
+      const newGroups = [];
+
+      for (let i = 0; i < groups.length; i++) {
+      const group = groups[i];
+      const operator = Object.keys(group)[0];
+      const newGroup = {
+        ...group
+      };
+      for (let j = 0; j < group[operator].length; j++) {
+        let row = newGroup[operator][j];
+        const translated = translateKeys(row);
+        newGroup[operator][j] = {
+        ...translated
+        }
+      }
+
+      newGroups[i] = newGroup;
+      }
+
+      
+      const result = {
+      where: {
+        [groupsOperator]: newGroups
+      }
+      }
+      console.log('After translation:', result)
+
+      return result;
+    }
 
     const updateGroupProperty = (
       groupId,
@@ -478,7 +495,7 @@
     const LeftValueInput = ({
       properties = [],
       level = 0,
-      setRowPropertyValue = (value = '', properties = [], level = 0) => {},
+      setRowPropertyValue = (value = '', properties = [], level = 0) => { },
       leftValue = '',
     }) => {
       const [value, setValue] = useState(getLeftValue(leftValue, level));
@@ -518,7 +535,7 @@
 
     const OperatorSwitch = ({
       prop = '',
-      setOperatorValue = () => {},
+      setOperatorValue = () => { },
       operator: value = 'eq',
     }) => {
       const operators = filterOperators(prop ? prop.kind : '');
@@ -558,7 +575,7 @@
     const RightValueInput = ({
       prop,
       operator,
-      setRightValue = (value) => {},
+      setRightValue = (value) => { },
       rightValue: value = '',
     }) => {
       if (operator === 'ex' || operator === 'nex') {
@@ -961,7 +978,7 @@
           onClick={handleAddGroup}
         >
           <Icon name="Add" fontSize="small" />
-          Add filter row
+          {addFilterRowText ? addFilterRowText : 'Add filter row'}
         </Button>
       );
     };
@@ -999,7 +1016,7 @@
             data-value="_and"
             onClick={handleOnClick}
           >
-            and
+            {ANDText ? ANDText : 'and'}
           </Button>
           <Button
             disableElevation
@@ -1009,7 +1026,7 @@
             onClick={handleOnClick}
             data-value="_or"
           >
-            or
+            {ORText ? ORText : 'or'}
           </Button>
         </ButtonGroup>
       );
@@ -1081,7 +1098,7 @@
                     onClick={handleSetGroupsOperator}
                     data-value="_and"
                   >
-                    and
+                    {ANDText ? ANDText : 'and'}
                   </Button>
                   <Button
                     disableElevation
@@ -1091,7 +1108,7 @@
                     onClick={handleSetGroupsOperator}
                     data-value="_or"
                   >
-                    or
+                    {ORText ? ORText : 'or'}
                   </Button>
                 </ButtonGroup>
               )}
@@ -1103,7 +1120,6 @@
 
     B.defineFunction('Apply filter', () => {
       try {
-        console.info('Applying filter... Please wait');
         handleApplyFilter();
       } catch (exception) {
         console.error(
@@ -1114,16 +1130,18 @@
     });
 
     const handleApplyFilter = () => {
-      const newFilter = makeFilter(groups);
-
+      const filter = makeFilter(groups);
       console.info('Filter for datatable ready! Output:');
-      console.info(newFilter);
+      console.info(filter);
 
-      B.triggerEvent('onSubmit', newFilter);
+      const readableFilter = makeReadableFilter(Object.assign({}, filter));
+      console.info('Readable filter:', readableFilter);
+
+      B.triggerEvent('onSubmit', filter);
     };
 
     return (
-      <div className={classes.root}>
+      <div className={classes.root} >
         <RenderGroups key={`render-group`} groups={groups} />
       </div>
     );
@@ -1183,12 +1201,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-              {
-                borderColor: ({ options: { highlightColor } }) => [
-                  style.getColor(highlightColor),
-                  '!important',
-                ],
-              },
+            {
+              borderColor: ({ options: { highlightColor } }) => [
+                style.getColor(highlightColor),
+                '!important',
+              ],
+            },
           },
         },
       },
