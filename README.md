@@ -11,7 +11,11 @@ How to use the whitelist
 1. Go to the Property Whitelist section in the component options.
 2. Enter the properties you want to see in the LHS field and separate them with a comma (,).
 
-The properties you enter should have the same format as the dataAPI (camelCase). If you are not sure about the format or name of the property, you can check the `DATABASE NAME` column in the model viewer. Replace each character after the underscore (_) with a capital letter and remove the underscore. So, for example: if the property is `my_property_name`, it becomes `myPropertyName`. Read more at [Getting started with the data API](https://docs.bettyblocks.com/en/articles/5775378-getting-started-with-the-data-api)
+The properties you enter should have the same format as the dataAPI (camelCase). You can read more information on this topic here: [Getting started with the data API](https://docs.bettyblocks.com/en/articles/5775378-getting-started-with-the-data-api).
+TLDR; 
+1. Go to the selected model
+2. Check the `DATABASE NAME` column for the property.
+3. Replace each character after the underscore (_) with a capital letter and remove the underscore. So, for example: if the property is `my_property_name`, it becomes `myPropertyName`. 
 
 ### Relational whitelisting
 
