@@ -32,7 +32,7 @@ The blacklist is the exact opposite of the whitelist. It allows you to specify w
 
 Occassionally you wish to use the filter that the user has defined in your actions. For example, when exporting filtered data. Here's how to do it:
 1. Drop a form on your page if not already present.
-2. Place the Custom Filter Component in the form. A Action Variable picker should display in the options panel of the component.
+2. Place the Custom Filter Component in the form. The 'Action Variable' picker should display in the options panel of the component.
 
 ![Filter in form](public/image.png)
 
