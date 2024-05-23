@@ -12,7 +12,8 @@ How to use the whitelist
 2. Enter the properties you want to see in the LHS field and separate them with a comma (,).
 
 The properties you enter should have the same format as the dataAPI (camelCase). You can read more information on this topic here: [Getting started with the data API](https://docs.bettyblocks.com/en/articles/5775378-getting-started-with-the-data-api).
-TLDR; 
+
+For now, here is a TLDR: 
 1. Go to the selected model
 2. Check the `DATABASE NAME` column for the property.
 3. Replace each character after the underscore (_) with a capital letter and remove the underscore. So, for example: if the property is `my_property_name`, it becomes `myPropertyName`. 
