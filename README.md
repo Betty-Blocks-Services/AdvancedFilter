@@ -1,6 +1,6 @@
-# Custom Filter Component
+# Advanced Filter Component
 
-The Custom Filter Component helps you filter a datatable or datalist based on specific properties and relational data. You can use up to 6 levels of relational filtering.
+The Advanced Filter Component helps you filter a datatable or datalist based on specific properties and relational data. You can use up to 6 levels of relational filtering.
 
 ## Property Whitelist & Blacklist
 
