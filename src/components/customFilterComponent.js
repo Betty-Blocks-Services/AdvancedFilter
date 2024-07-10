@@ -58,7 +58,7 @@
     const [groups, setGroups] = React.useState(initialState);
     const [groupsOperator, setGroupsOperator] = React.useState('_and');
 
-    const [readableFilter, setReadableFilter] = useState(null);
+    const [actionFilter, setActionFilter] = useState(null);
 
     const stringKinds = [
       'string',
@@ -219,7 +219,7 @@
 
     const makeFilterChild = (prop, op, right) => {
       // The prop is stored as a string with a dot notation that represents the path to the property
-
+      console.log(prop, op, right)
       const constructObject = (prop, value) => {
         // Construct an object from a string with dot notation
         // Example: 'user.name' => { user: { name: value } }
@@ -227,12 +227,12 @@
         const last = keys.pop();
         const newObj = {};
         let current = newObj;
-        keys.forEach((key) => {
-          current[key] = {};
-          current = current[key];
+        keys.forEach((x) => {
+          current[x] = {};
+          current = current[x];
         });
         current[last] = value;
-        return newObj;
+        return current;
       };
 
       switch (op) {
@@ -270,53 +270,49 @@
     };
 
     function makeReadableFilter(f) {
-      console.log('Before translation:', f)
-      // Create a deep copy of the f object to prevent overwriting the original object
-      const where = {
-      ...f.where
-      }
+      const { where } = f;
       const { _and, _or } = where;
       const groups = _and || _or;
 
       const translateKeys = (row) => {
-      const result = {};
-      const key = Object.keys(row)[0];
-      const value = row[key];
+        const result = {};
+        const key = Object.keys(row)[0];
+        const value = row[key];
 
-      if (typeof value === 'object') {
-        const { name } = getProperty(key);
-        result[name] = translateKeys(value);
-      } else {
-        result[key] = value;
-      }
+        if (typeof value === 'object') {
+          const { name } = getProperty(key);
+          result[name] = translateKeys(value);
+        } else {
+          result[key] = value;
+        }
 
-      return result;
+        return result;
       };
 
       const newGroups = [];
 
       for (let i = 0; i < groups.length; i++) {
-      const group = groups[i];
-      const operator = Object.keys(group)[0];
-      const newGroup = {
-        ...group
-      };
-      for (let j = 0; j < group[operator].length; j++) {
-        let row = newGroup[operator][j];
-        const translated = translateKeys(row);
-        newGroup[operator][j] = {
-        ...translated
+        const group = groups[i];
+        const operator = Object.keys(group)[0];
+        const newGroup = {
+          ...group
+        };
+        for (let j = 0; j < group[operator].length; j++) {
+          let row = { ...newGroup[operator][j] };
+          const translated = translateKeys(row);
+          newGroup[operator][j] = {
+            ...translated
+          }
         }
+
+        newGroups[i] = newGroup;
       }
 
-      newGroups[i] = newGroup;
-      }
 
-      
       const result = {
-      where: {
-        [groupsOperator]: newGroups
-      }
+        where: {
+          [groupsOperator]: newGroups
+        }
       }
       console.log('After translation:', result)
 
@@ -1063,7 +1059,7 @@
 
       return (
         <>
-          <input type="hidden" name={name} value={JSON.stringify(readableFilter)} />
+          <input type="hidden" name={name} value={JSON.stringify(actionFilter)} />
           {groups.map((group, index) => (
             <div key={`group-${group.id}`}>
               <div className={classes.filter}>
@@ -1130,16 +1126,10 @@
     });
 
     const handleApplyFilter = () => {
-      const filter = makeFilter(groups);
-      console.info('Filter for datatable ready! Output:');
-      console.info(filter);
-
-      const readableFilter = makeReadableFilter(Object.assign({}, filter));
-      console.info('Readable filter:', readableFilter);
-      setReadableFilter(readableFilter);
-
-      
-      B.triggerEvent('onSubmit', filter);
+      const dataTableFilter = makeFilter(groups);
+      const actionFilter = makeReadableFilter(makeFilter(groups));
+      setActionFilter(actionFilter);
+      B.triggerEvent('onSubmit', dataTableFilter);
     };
 
     return (
