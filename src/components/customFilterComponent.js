@@ -88,11 +88,7 @@
     const dateKinds = ['date', 'date_expression'];
     const dateTimeKinds = ['date_time_expression', 'date_time', 'time'];
     const booleanKinds = ['boolean', 'boolean_expression'];
-    const forbiddenKinds = [
-      'password',
-      'multi_image',
-      'multi_file',
-    ];
+    const forbiddenKinds = ['password', 'multi_image', 'multi_file'];
     const operatorList = [
       {
         operator: 'eq',
@@ -199,40 +195,31 @@
       handleSetFilterGroups(initialState);
     });
 
-    const filterProps = (properties, id, inverseId = '') => {
-      return Object.values(properties).filter((prop) => {
-        return (
+    const filterProps = (properties, id, inverseId = '') =>
+      Object.values(properties).filter(
+        (prop) =>
           // Add all properties besides the forbidden
           prop.modelId === id &&
           !forbiddenKinds.includes(prop.kind) &&
-          (inverseId === '' || inverseId !== prop.id)
-        );
-      });
-    };
+          (inverseId === '' || inverseId !== prop.id),
+      );
 
     const filterOperators = (kind = '') => {
       if (!kind) return operatorList;
-      return operatorList.filter((op) => {
-        return op.kinds.includes(kind) || op.kinds.includes('*');
-      });
+      return operatorList.filter(
+        (op) => op.kinds.includes(kind) || op.kinds.includes('*'),
+      );
     };
 
     const makeFilterChild = (prop, op, right) => {
       // The prop is stored as a string with a dot notation that represents the path to the property
-      console.log(prop, op, right)
-      const constructObject = (prop, value) => {
+      console.log({ prop, op, right });
+
+      const constructObject = (p, value) => {
         // Construct an object from a string with dot notation
         // Example: 'user.name' => { user: { name: value } }
-        const keys = prop.split('.');
-        const last = keys.pop();
-        const newObj = {};
-        let current = newObj;
-        keys.forEach((x) => {
-          current[x] = {};
-          current = current[x];
-        });
-        current[last] = value;
-        return current;
+        const array = p.split('.');
+        return array.reduceRight((acc, key) => ({ [key]: acc }), value);
       };
 
       switch (op) {
@@ -251,23 +238,19 @@
       }
     };
 
-    const makeFilter = (tree) => {
-      return {
-        where: {
-          [groupsOperator]: tree.map((node) => {
-            return {
-              [node.operator]: node.rows.map((subnode) => {
-                return makeFilterChild(
-                  subnode.propertyValue,
-                  subnode.operator,
-                  subnode.rightValue,
-                );
-              }),
-            };
-          }),
-        },
-      };
-    };
+    const makeFilter = (tree) => ({
+      where: {
+        [groupsOperator]: tree.map((node) => ({
+          [node.operator]: node.rows.map((subnode) =>
+            makeFilterChild(
+              subnode.propertyValue,
+              subnode.operator,
+              subnode.rightValue,
+            ),
+          ),
+        })),
+      },
+    });
 
     function makeReadableFilter(f) {
       const { where } = f;
@@ -295,37 +278,31 @@
         const group = groups[i];
         const operator = Object.keys(group)[0];
         const newGroup = {
-          ...group
+          ...group,
         };
         for (let j = 0; j < group[operator].length; j++) {
-          let row = { ...newGroup[operator][j] };
+          const row = { ...newGroup[operator][j] };
           const translated = translateKeys(row);
           newGroup[operator][j] = {
-            ...translated
-          }
+            ...translated,
+          };
         }
 
         newGroups[i] = newGroup;
       }
 
-
       const result = {
         where: {
-          [groupsOperator]: newGroups
-        }
-      }
-      console.log('After translation:', result)
+          [groupsOperator]: newGroups,
+        },
+      };
+      console.log('After translation:', result);
 
       return result;
     }
 
-    const updateGroupProperty = (
-      groupId,
-      groups,
-      propertyToUpdate,
-      newValue,
-    ) => {
-      return groups.map((group) => {
+    const updateGroupProperty = (groupId, groups, propertyToUpdate, newValue) =>
+      groups.map((group) => {
         if (group.id === groupId) {
           const newGroup = group;
           newGroup[propertyToUpdate] = newValue;
@@ -351,10 +328,9 @@
         });
         return group;
       });
-    };
 
-    const deleteFilter = (group, rowId) => {
-      return group.map((group) => {
+    const deleteFilter = (group, rowId) =>
+      group.map((group) => {
         const foundRow = group.rows.filter((row) => row.rowId === rowId);
         if (foundRow.length === 0) {
           // eslint-disable-next-line no-param-reassign
@@ -365,7 +341,6 @@
         group.rows = group.rows.filter((row) => row.rowId !== rowId);
         return group;
       });
-    };
 
     const mapList = (input = '') => {
       const lines = input.split(',');
@@ -392,8 +367,14 @@
       return result;
     };
 
-
-    const mapProperties = (properties, id, iteration, whitelist = {}, blacklist = {}, parent = '') => {
+    const mapProperties = (
+      properties,
+      id,
+      iteration,
+      whitelist = {},
+      blacklist = {},
+      parent = '',
+    ) => {
       if (iteration === undefined) iteration = 0;
       if (iteration > 5) return [];
 
@@ -405,25 +386,27 @@
       }
 
       if (Object.keys(blacklist).length > 0) {
-        filteredProps = filteredProps.filter(
-          (prop) => !blacklist[prop.name]
-        );
+        filteredProps = filteredProps.filter((prop) => !blacklist[prop.name]);
       }
 
       const tree = filteredProps
-        .filter((prop) => {
-          // Prevent recursion by checking if the inverse association is not the same as the parent
-          return parent === '' || parent !== prop.inverseAssociationId;
-        })
+        .filter(
+          (prop) =>
+            // Prevent recursion by checking if the inverse association is not the same as the parent
+            parent === '' || parent !== prop.inverseAssociationId,
+        )
         .map((prop) => {
-          if ((prop.kind === 'belongs_to' || prop.kind === 'has_many') && iteration !== 5) {
+          if (
+            (prop.kind === 'belongs_to' || prop.kind === 'has_many') &&
+            iteration !== 5
+          ) {
             const props = mapProperties(
               properties,
               prop.referenceModelId,
               iteration + 1,
               whitelist ? whitelist[prop.name] : undefined,
               blacklist,
-              prop.id
+              prop.id,
             );
             return {
               ...prop,
@@ -435,10 +418,10 @@
             properties: [],
           };
         })
-        .sort((a, b) => {
+        .sort((a, b) =>
           // Locale compare to sort alphabetically
-          return a.label.localeCompare(b.label);
-        });
+          a.label.localeCompare(b.label),
+        );
       return tree;
     };
 
@@ -448,64 +431,59 @@
       return properties.find((prop) => prop.id === id);
     };
 
-    const PropertySelector = ({
+    function PropertySelector({
       properties = [],
       onChange = () => undefined,
       selectedProperty = '',
-    }) => {
+    }) {
       return (
-        <>
-          <TextField
-            defaultValue=""
-            value={selectedProperty}
-            classes={{ root: classes.textFieldHighlight }}
-            size="small"
-            variant="outlined"
-            style={{ marginRight: '10px', width: '100%' }}
-            onChange={onChange}
-            select
-            name={`property-${selectedProperty}`}
-          >
-            {properties.map(({ id, label, properties }) => {
-              const appendix = properties.length > 0 ? ' »' : '';
-              return (
-                <MenuItem key={id} value={id}>
-                  {label + appendix}
-                </MenuItem>
-              );
-            })}
-          </TextField>
-        </>
+        <TextField
+          defaultValue=""
+          value={selectedProperty}
+          classes={{ root: classes.textFieldHighlight }}
+          size="small"
+          variant="outlined"
+          style={{ marginRight: '10px', width: '100%' }}
+          onChange={onChange}
+          select
+          name={`property-${selectedProperty}`}
+        >
+          {properties.map(({ id, label, properties }) => {
+            const appendix = properties.length > 0 ? ' »' : '';
+            return (
+              <MenuItem key={id} value={id}>
+                {label + appendix}
+              </MenuItem>
+            );
+          })}
+        </TextField>
       );
-    };
+    }
 
-    const getGroup = (groupId) => {
-      return groups.find((group) => group.id === groupId);
-    };
+    const getGroup = (groupId) => groups.find((group) => group.id === groupId);
 
     const getLeftValue = (leftValue, level = 0) => {
       const value = leftValue.split('.');
       return value[level];
     };
 
-    const LeftValueInput = ({
+    function LeftValueInput({
       properties = [],
       level = 0,
-      setRowPropertyValue = (value = '', properties = [], level = 0) => { },
+      setRowPropertyValue = (value = '', properties = [], level = 0) => {},
       leftValue = '',
-    }) => {
+    }) {
       const [value, setValue] = useState(getLeftValue(leftValue, level));
       const prop = filterMappedProperties(properties, value);
 
-
       useEffect(() => {
         if (level > 0 && properties.length > 0 && value === undefined) {
-          setValue(properties[0].id)
+          setValue(properties[0].id);
         }
-      }, [])
+      }, []);
 
       const onChange = (e) => {
-        const value = e.target.value;
+        const { value } = e.target;
         setValue(value);
         setRowPropertyValue(value, properties, level);
       };
@@ -527,18 +505,18 @@
           )}
         </>
       );
-    };
+    }
 
-    const OperatorSwitch = ({
+    function OperatorSwitch({
       prop = '',
-      setOperatorValue = () => { },
+      setOperatorValue = () => {},
       operator: value = 'eq',
-    }) => {
+    }) {
       const operators = filterOperators(prop ? prop.kind : '');
       const [operator, setOperator] = useState(value);
 
       const onChange = (e) => {
-        const value = e.target.value;
+        const { value } = e.target;
         setOperator(value);
         setOperatorValue(value);
       };
@@ -554,26 +532,24 @@
           select
           onChange={onChange}
         >
-          {operators.map(({ operator, label }) => {
-            return (
-              <MenuItem key={operator} value={operator}>
-                {label}
-              </MenuItem>
-            );
-          })}
+          {operators.map(({ operator, label }) => (
+            <MenuItem key={operator} value={operator}>
+              {label}
+            </MenuItem>
+          ))}
         </TextField>
       );
-    };
+    }
     const handleSetFilterGroups = useCallback((newGroups) => {
       setGroups(newGroups);
     }, []);
 
-    const RightValueInput = ({
+    function RightValueInput({
       prop,
       operator,
-      setRightValue = (value) => { },
+      setRightValue = (value) => {},
       rightValue: value = '',
-    }) => {
+    }) {
       if (operator === 'ex' || operator === 'nex') {
         return <></>;
       }
@@ -582,7 +558,7 @@
 
       const handleBlur = (e) => {
         setRightValue(rightValue);
-      }
+      };
       const isNumberType = numberKinds.includes(prop.kind);
       const isDateType = dateKinds.includes(prop.kind);
       const isDateTimeType = dateTimeKinds.includes(prop.kind);
@@ -602,12 +578,12 @@
           setRightValueState(newRightValue);
           setRightValue(newRightValue);
         } else if (type === 'number') {
-          const value = e.target.value;
-          let newRightValue = Number(value);
+          const { value } = e.target;
+          const newRightValue = Number(value);
           setRightValueState(newRightValue);
         } else {
-          const value = e.target.value;
-          let newRightValue = value;
+          const { value } = e.target;
+          const newRightValue = value;
           setRightValueState(newRightValue);
         }
       };
@@ -676,7 +652,7 @@
               KeyboardButtonProps={{
                 'aria-label': 'change date',
               }}
-              allowKeyboardControl={true}
+              allowKeyboardControl
               onChange={(date) => {
                 handleChangeDate(date, 'date');
               }}
@@ -716,7 +692,7 @@
               KeyboardButtonProps={{
                 'aria-label': 'change date',
               }}
-              allowKeyboardControl={true}
+              allowKeyboardControl
               onChange={(date) => handleChangeDate(date, 'dateTime')}
               onBlur={handleBlur}
             />
@@ -788,7 +764,7 @@
           onBlur={handleBlur}
         />
       );
-    };
+    }
 
     const updateRow = (rowId, newRow) => {
       const newGroups = groups.map((group) => {
@@ -805,12 +781,18 @@
       handleSetFilterGroups(newGroups);
     };
 
-    const FilterRow = ({ row = {}, removeable = false }) => {
+    function FilterRow({ row = {}, removeable = false }) {
       if (!modelId) return <p>Please select a model</p>;
 
       const mappedWhiteList = mapList(propertyWhiteList);
       const mappedBlackList = mapList(propertyBlacklist);
-      const mappedProperties = mapProperties(properties, modelId, 0, mappedWhiteList, mappedBlackList);
+      const mappedProperties = mapProperties(
+        properties,
+        modelId,
+        0,
+        mappedWhiteList,
+        mappedBlackList,
+      );
 
       const [filter, setFilter] = useState(row);
 
@@ -899,8 +881,17 @@
                 leftValue={row.propertyValue}
               />
             </div>
-            <OperatorSwitch prop={currentProperty} setOperatorValue={setOperatorValue} operator={row.operator} />
-            <RightValueInput prop={currentProperty} setRightValue={setRightValue} rightValue={row.rightValue} operator={row.operator} />
+            <OperatorSwitch
+              prop={currentProperty}
+              setOperatorValue={setOperatorValue}
+              operator={row.operator}
+            />
+            <RightValueInput
+              prop={currentProperty}
+              setRightValue={setRightValue}
+              rightValue={row.rightValue}
+              operator={row.operator}
+            />
             {removeable && (
               <IconButton aria-label="delete" onClick={deleteRow}>
                 <Icon name="Delete" fontSize="small" />
@@ -909,9 +900,9 @@
           </div>
         </div>
       );
-    };
+    }
 
-    const FilterRowDev = () => {
+    function FilterRowDev() {
       return (
         <div style={{ width: '100%', marginBottom: '10px' }}>
           <TextField
@@ -937,7 +928,7 @@
           </IconButton>
         </div>
       );
-    };
+    }
 
     const addFilter = (tree, groupId) => {
       const newRow = {
@@ -958,7 +949,7 @@
       });
     };
 
-    const AddFilterRowButton = ({ group }) => {
+    function AddFilterRowButton({ group }) {
       const handleAddGroup = (e) => {
         e.preventDefault();
 
@@ -974,10 +965,10 @@
           onClick={handleAddGroup}
         >
           <Icon name="Add" fontSize="small" />
-          {addFilterRowText ? addFilterRowText : 'Add filter row'}
+          {addFilterRowText || 'Add filter row'}
         </Button>
       );
-    };
+    }
 
     const deleteGroup = (tree, groupId) => {
       const newTree = tree.slice();
@@ -989,7 +980,7 @@
       return newTree;
     };
 
-    const AndOrOperatorSwitch = ({ groupId }) => {
+    function AndOrOperatorSwitch({ groupId }) {
       const group = getGroup(groupId);
 
       const handleOnClick = (e) => {
@@ -1012,7 +1003,7 @@
             data-value="_and"
             onClick={handleOnClick}
           >
-            {ANDText ? ANDText : 'and'}
+            {ANDText || 'and'}
           </Button>
           <Button
             disableElevation
@@ -1022,11 +1013,11 @@
             onClick={handleOnClick}
             data-value="_or"
           >
-            {ORText ? ORText : 'or'}
+            {ORText || 'or'}
           </Button>
         </ButtonGroup>
       );
-    };
+    }
 
     const handleDeleteGroup = (e) => {
       e.preventDefault();
@@ -1041,25 +1032,26 @@
       setGroupsOperator(newGroupsOperator);
     };
 
-    const RenderGroups = ({ groups }) => {
-      const mapRows = (group) => {
-        return group.rows.map((row, i) => {
-          return (
-            <>
-              {i > 0 && <hr />}
-              <FilterRow
-                row={row}
-                removeable={group.rows.length > 1}
-                key={`filter-row-${row.rowId}`}
-              />
-            </>
-          );
-        });
-      };
+    function RenderGroups({ groups }) {
+      const mapRows = (group) =>
+        group.rows.map((row, i) => (
+          <>
+            {i > 0 && <hr />}
+            <FilterRow
+              row={row}
+              removeable={group.rows.length > 1}
+              key={`filter-row-${row.rowId}`}
+            />
+          </>
+        ));
 
       return (
         <>
-          <input type="hidden" name={name} value={JSON.stringify(actionFilter)} />
+          <input
+            type="hidden"
+            name={name}
+            value={JSON.stringify(actionFilter)}
+          />
           {groups.map((group, index) => (
             <div key={`group-${group.id}`}>
               <div className={classes.filter}>
@@ -1094,7 +1086,7 @@
                     onClick={handleSetGroupsOperator}
                     data-value="_and"
                   >
-                    {ANDText ? ANDText : 'and'}
+                    {ANDText || 'and'}
                   </Button>
                   <Button
                     disableElevation
@@ -1104,7 +1096,7 @@
                     onClick={handleSetGroupsOperator}
                     data-value="_or"
                   >
-                    {ORText ? ORText : 'or'}
+                    {ORText || 'or'}
                   </Button>
                 </ButtonGroup>
               )}
@@ -1112,6 +1104,15 @@
           ))}
         </>
       );
+    }
+
+    const handleApplyFilter = () => {
+      const dataTableFilter = makeFilter(groups);
+      console.log({ dataTableFilter, groups });
+      B.triggerEvent('onSubmit', dataTableFilter);
+      // const filterForAction = makeReadableFilter(makeFilter(groups));
+      // console.log({ filterForAction });
+      // setActionFilter(filterForAction);
     };
 
     B.defineFunction('Apply filter', () => {
@@ -1125,16 +1126,9 @@
       }
     });
 
-    const handleApplyFilter = () => {
-      const dataTableFilter = makeFilter(groups);
-      const actionFilter = makeReadableFilter(makeFilter(groups));
-      setActionFilter(actionFilter);
-      B.triggerEvent('onSubmit', dataTableFilter);
-    };
-
     return (
-      <div className={classes.root} >
-        <RenderGroups key={`render-group`} groups={groups} />
+      <div className={classes.root}>
+        <RenderGroups key="render-group" groups={groups} />
       </div>
     );
   })(),
@@ -1193,12 +1187,12 @@
         '& .MuiInputBase-root': {
           '&.Mui-focused, &.Mui-focused:hover': {
             '& .MuiOutlinedInput-notchedOutline, & .MuiFilledInput-underline, & .MuiInput-underline':
-            {
-              borderColor: ({ options: { highlightColor } }) => [
-                style.getColor(highlightColor),
-                '!important',
-              ],
-            },
+              {
+                borderColor: ({ options: { highlightColor } }) => [
+                  style.getColor(highlightColor),
+                  '!important',
+                ],
+              },
           },
         },
       },
