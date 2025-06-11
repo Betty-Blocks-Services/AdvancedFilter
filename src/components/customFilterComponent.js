@@ -190,6 +190,9 @@
         },
       ]);
     });
+    const handleSetFilterGroups = useCallback((newGroups) => {
+      setGroups(newGroups);
+    }, []);
 
     B.defineFunction('Reset advanced filter', () => {
       handleSetFilterGroups(initialState);
@@ -540,9 +543,6 @@
         </TextField>
       );
     }
-    const handleSetFilterGroups = useCallback((newGroups) => {
-      setGroups(newGroups);
-    }, []);
 
     function RightValueInput({
       prop,
@@ -1110,9 +1110,9 @@
       const dataTableFilter = makeFilter(groups);
       console.log({ dataTableFilter, groups });
       B.triggerEvent('onSubmit', dataTableFilter);
-      // const filterForAction = makeReadableFilter(makeFilter(groups));
-      // console.log({ filterForAction });
-      // setActionFilter(filterForAction);
+      const filterForAction = makeReadableFilter(makeFilter(groups));
+      console.log({ filterForAction });
+      setActionFilter(filterForAction);
     };
 
     B.defineFunction('Apply filter', () => {
