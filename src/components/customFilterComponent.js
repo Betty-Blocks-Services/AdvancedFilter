@@ -567,7 +567,8 @@
       const isSpecialType = operator === 'ex' || operator === 'nex';
 
       const handleChange = (e) => {
-        const { type } = e.target.dataset;
+
+        const { type = 'text' } = e.target.dataset || {};
 
         if (type === 'date') {
           const d = new Date(e);
